@@ -5,17 +5,38 @@ on:
     paths:
     - ".github/workflows/backend.yml"
     - "CMakeLists.txt"
+    - "cmake/**"
     - "src/*"
     - "scripts/*"
   pull_request:
     paths:
     - ".github/workflows/backend.yml"
     - "CMakeLists.txt"
+    - "cmake/**"
     - "src/*"
     - "scripts/*"
   workflow_call:
 
 jobs:
+  native:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libuv1-dev libjson-c-dev libwebsockets-dev libssl-dev zlib1g-dev
+      - name: Build and smoke native server
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          ./build/ttyd --version
+          ./build/ttyd --help
+          ./build/ttyd -i 127.0.0.1 -p 7681 sh &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID"; wait "$SERVER_PID" || true' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:7681/ -o /tmp/ttyd-index.html
+          curl --fail http://127.0.0.1:7681/token
   msvc:
     runs-on: windows-latest
     env:

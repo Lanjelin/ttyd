@@ -1,13 +1,18 @@
-![backend](https://github.com/tsl0922/ttyd/workflows/backend/badge.svg)
-![frontend](https://github.com/tsl0922/ttyd/workflows/frontend/badge.svg)
-[![GitHub Releases](https://img.shields.io/github/downloads/tsl0922/ttyd/total)](https://github.com/tsl0922/ttyd/releases)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tsl0922/ttyd)](https://hub.docker.com/r/tsl0922/ttyd)
+![backend](https://github.com/Lanjelin/ttyd/actions/workflows/backend.yml/badge.svg)
+![frontend](https://github.com/Lanjelin/ttyd/actions/workflows/frontend.yml/badge.svg)
+[![GitHub Releases](https://img.shields.io/github/downloads/Lanjelin/ttyd/total)](https://github.com/Lanjelin/ttyd/releases)
 [![Packaging status](https://repology.org/badge/tiny-repos/ttyd.svg)](https://repology.org/project/ttyd/versions)
-![GitHub](https://img.shields.io/github/license/tsl0922/ttyd)
+![GitHub](https://img.shields.io/github/license/Lanjelin/ttyd)
 
 # ttyd - Share your terminal over the web
 
 ttyd is a simple command-line tool for sharing terminal over the web.
+
+This repository is the [Lanjelin/ttyd](https://github.com/Lanjelin/ttyd) fork of
+[tsl0922/ttyd](https://github.com/tsl0922/ttyd). Distribution packages and upstream
+images may not include this fork's changes. See [MODERNIZATION.md](MODERNIZATION.md)
+for dependency decisions and compatibility changes, and [AGENTS.md](AGENTS.md)
+for contributor guidance.
 
 ![screenshot](https://github.com/tsl0922/ttyd/raw/main/screenshot.gif)
 
@@ -26,7 +31,7 @@ ttyd is a simple command-line tool for sharing terminal over the web.
 
 ## Install on macOS
 
-- Install with [Homebrew](http://brew.sh): `brew install ttyd`
+- Install with [Homebrew](https://brew.sh): `brew install ttyd`
 - Install with [MacPorts](https://www.macports.org): `sudo port install ttyd`
 
 ## Install on Linux
@@ -36,14 +41,38 @@ ttyd is a simple command-line tool for sharing terminal over the web.
 - Install on OpenWrt: `opkg install ttyd`
 - Install on Gentoo: clone the [repo](https://bitbucket.org/mgpagano/ttyd/src/master) and follow the directions [here](https://wiki.gentoo.org/wiki/Custom_repository#Creating_a_local_repository).
 - Install with [Homebrew](https://docs.brew.sh/Homebrew-on-Linux) : `brew install ttyd`
-- Precompiled static binaries: download from the [releases](https://github.com/tsl0922/ttyd/releases) page
+- Precompiled binaries from this fork, when published: [releases](https://github.com/Lanjelin/ttyd/releases)
 
 ## Install on Windows
 
-- Binary version (recommended): download from the [releases](https://github.com/tsl0922/ttyd/releases) page
+- Binary version: download from this fork's [releases](https://github.com/Lanjelin/ttyd/releases), when available
 - Install with [WinGet](https://github.com/microsoft/winget-cli): `winget install tsl0922.ttyd`
 - Install with [Scoop](https://scoop.sh/#/apps?q=ttyd&s=2&d=1&o=true): `scoop install ttyd`
 - [Compile on Windows](https://github.com/tsl0922/ttyd/wiki/Compile-on-Windows)
+
+## Build from source
+
+Install a C99 compiler, CMake, libuv, json-c, zlib and libwebsockets development
+packages. libwebsockets must have libuv support enabled (`-DLWS_WITH_LIBUV=ON`);
+its TLS backend may also require OpenSSL development packages. For example, on
+Debian/Ubuntu:
+
+```sh
+sudo apt install build-essential cmake libuv1-dev libjson-c-dev \
+  libwebsockets-dev libssl-dev zlib1g-dev
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+./build/ttyd -i 127.0.0.1 -W bash
+```
+
+The committed browser bundle allows native-only builds without Node.js.
+For browser changes, use Node.js 24 or newer and the pinned Yarn version;
+see [html/README.md](html/README.md). Rebuild the native executable after
+regenerating the browser bundle.
+
+Fork container images are published to `ghcr.io/lanjelin/ttyd` by the Docker
+workflow. Docker Hub publishing is optional and uses the configured
+`DOCKER_HUB_USER`/`DOCKER_HUB_TOKEN` secrets, not the upstream namespace.
 
 # Usage
 

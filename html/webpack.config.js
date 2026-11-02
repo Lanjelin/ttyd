@@ -1,6 +1,5 @@
 const path = require('path');
 const { merge } = require('webpack-merge');
-const ESLintPlugin = require('eslint-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -16,6 +15,7 @@ const baseConfig = {
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
+        clean: true,
         filename: devMode ? '[name].js' : '[name].[contenthash].js',
     },
     module: {
@@ -27,7 +27,11 @@ const baseConfig = {
             },
             {
                 test: /\.s?[ac]ss$/,
-                use: [devMode ? 'style-loader' : MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+                use: [
+                    devMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+                    'css-loader',
+                    { loader: 'sass-loader', options: { api: 'modern' } },
+                ],
             },
         ],
     },
@@ -35,10 +39,6 @@ const baseConfig = {
         extensions: ['.tsx', '.ts', '.js'],
     },
     plugins: [
-        new ESLintPlugin({
-            context: path.resolve(__dirname, '.'),
-            extensions: ['js', 'jsx', 'ts', 'tsx'],
-        }),
         new CopyWebpackPlugin({
             patterns: [{ from: './favicon.png', to: '.' }],
         }),
@@ -67,7 +67,9 @@ const devConfig = {
         static: path.join(__dirname, 'dist'),
         compress: true,
         port: 9000,
+        // Keep the development transport separate from ttyd's /ws proxy.
         client: {
+            webSocketURL: { pathname: '/webpack-ws' },
             overlay: {
                 errors: true,
                 warnings: false,
@@ -81,9 +83,9 @@ const devConfig = {
             },
         ],
         webSocketServer: {
-            type: 'sockjs',
+            type: 'ws',
             options: {
-                path: '/sockjs-node',
+                path: '/webpack-ws',
             },
         },
     },

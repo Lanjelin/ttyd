@@ -4,11 +4,11 @@ on:
   push:
     paths:
     - ".github/workflows/frontend.yml"
-    - "html/*"
+    - "html/**"
   pull_request:
     paths:
     - ".github/workflows/frontend.yml"
-    - "html/*"
+    - "html/**"
 
 jobs:
   build:
@@ -17,12 +17,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 24
       - name: Run yarn install, check and build
         run: |
+          npm install --global corepack
           corepack enable
-          corepack prepare yarn@stable --activate
-          yarn install
+          yarn install --immutable
           yarn run check
           yarn run build
         working-directory: html

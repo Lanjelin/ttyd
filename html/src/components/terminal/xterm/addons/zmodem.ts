@@ -1,4 +1,3 @@
-import { bind } from 'decko';
 import { saveAs } from 'file-saver';
 import { IDisposable, ITerminalAddon, Terminal } from '@xterm/xterm';
 import * as Zmodem from 'zmodem.js/src/zmodem_browser';
@@ -50,18 +49,16 @@ export class ZmodemAddon implements ITerminalAddon {
         }
     }
 
-    @bind
-    private reset() {
+    private reset = () => {
         this.terminal.options.disableStdin = false;
         this.terminal.focus();
-    }
+    };
 
     private addDisposableListener(target: EventTarget, type: string, listener: EventListener) {
         target.addEventListener(type, listener);
         this.disposables.push({ dispose: () => target.removeEventListener(type, listener) });
     }
 
-    @bind
     private trzszInit() {
         const { terminal } = this;
         const { sender, writer, zmodem } = this.options;
@@ -90,7 +87,6 @@ export class ZmodemAddon implements ITerminalAddon {
         this.disposables.push(terminal.onResize(size => this.trzszFilter.setTerminalColumns(size.cols)));
     }
 
-    @bind
     private zmodemInit() {
         const { sender, writer } = this.options;
         const { terminal, reset, zmodemDetect } = this;
@@ -111,8 +107,7 @@ export class ZmodemAddon implements ITerminalAddon {
         );
     }
 
-    @bind
-    private zmodemDetect(detection: Zmodem.Detection): void {
+    private zmodemDetect = (detection: Zmodem.Detection): void => {
         const { terminal, receiveFile } = this;
         terminal.options.disableStdin = true;
 
@@ -125,9 +120,8 @@ export class ZmodemAddon implements ITerminalAddon {
         } else {
             receiveFile();
         }
-    }
+    };
 
-    @bind
     public sendFile(files: FileList) {
         const { session, writeProgress } = this;
         Zmodem.Browser.send_files(session, files, {
@@ -137,8 +131,7 @@ export class ZmodemAddon implements ITerminalAddon {
             .catch(() => this.reset());
     }
 
-    @bind
-    private receiveFile() {
+    private receiveFile = () => {
         const { session, writeProgress } = this;
 
         session.on('offer', offer => {
@@ -153,19 +146,17 @@ export class ZmodemAddon implements ITerminalAddon {
         });
 
         session.start();
-    }
+    };
 
-    @bind
-    private writeProgress(offer: Zmodem.Offer) {
-        const { bytesHuman } = this;
+    private writeProgress = (offer: Zmodem.Offer) => {
         const file = offer.get_details();
         const name = file.name;
         const size = file.size;
         const offset = offer.get_offset();
         const percent = ((100 * offset) / size).toFixed(2);
 
-        this.options.writer(`${name} ${percent}% ${bytesHuman(offset, 2)}/${bytesHuman(size, 2)}\r`);
-    }
+        this.options.writer(`${name} ${percent}% ${this.bytesHuman(offset, 2)}/${this.bytesHuman(size, 2)}\r`);
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private bytesHuman(bytes: any, precision: number): string {

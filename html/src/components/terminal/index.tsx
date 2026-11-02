@@ -1,4 +1,3 @@
-import { bind } from 'decko';
 import { Component, h } from 'preact';
 import { Xterm, XtermOptions } from './xterm';
 
@@ -18,7 +17,7 @@ export class Terminal extends Component<Props, State> {
     private xterm: Xterm;
 
     constructor(props: Props) {
-        super();
+        super(props);
         this.xterm = new Xterm(props, this.showModal);
     }
 
@@ -34,7 +33,7 @@ export class Terminal extends Component<Props, State> {
 
     render({ id }: Props, { modal }: State) {
         return (
-            <div id={id} ref={c => (this.container = c as HTMLElement)}>
+            <div id={id} ref={c => { this.container = c as HTMLElement; }}>
                 <Modal show={modal}>
                     <label class="file-label">
                         <input onChange={this.sendFile} class="file-input" type="file" multiple />
@@ -45,15 +44,13 @@ export class Terminal extends Component<Props, State> {
         );
     }
 
-    @bind
-    showModal() {
+    showModal = () => {
         this.setState({ modal: true });
-    }
+    };
 
-    @bind
-    sendFile(event: Event) {
+    sendFile = (event: Event) => {
         this.setState({ modal: false });
         const files = (event.target as HTMLInputElement).files;
         if (files) this.xterm.sendFile(files);
-    }
+    };
 }

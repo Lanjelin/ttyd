@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12.0)
+cmake_minimum_required(VERSION 3.12...4.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -18,15 +18,7 @@ endif()
 
 if(NOT MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
-    if(CMAKE_VERSION VERSION_LESS "3.1")
-        if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-        else()
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-        endif()
-    else()
-        set(CMAKE_C_STANDARD 99)
-    endif()
+    set(CMAKE_C_STANDARD 99)
 else()
     # MSVC: suppress common warnings for C99 code
     add_compile_options(/W3 /wd4996 /wd4267 /wd4244)
@@ -59,14 +51,12 @@ find_package(ZLIB REQUIRED)
 find_package(Libwebsockets 3.2.0 REQUIRED)
 
 set(INCLUDE_DIRS ${ZLIB_INCLUDE_DIR} ${LIBWEBSOCKETS_INCLUDE_DIRS} ${JSON-C_INCLUDE_DIRS} ${LIBUV_INCLUDE_DIRS})
-if(MSVC)
-    # vcpkg's LIBWEBSOCKETS_LIBRARIES lists both 'websockets' and 'websockets_shared'
-    # but only one target exists per triplet, so resolve the correct one.
-    if(TARGET websockets_shared)
-        set(LINK_LIBS ${ZLIB_LIBRARIES} websockets_shared ${JSON-C_LIBRARIES} ${LIBUV_LIBRARIES})
-    elseif(TARGET websockets)
-        set(LINK_LIBS ${ZLIB_LIBRARIES} websockets ${JSON-C_LIBRARIES} ${LIBUV_LIBRARIES})
-    endif()
+# Upstream's config may list both libraries even when only one was built.
+# Use the available imported target, including its library path and dependencies.
+if(TARGET websockets_shared)
+    set(LINK_LIBS ${ZLIB_LIBRARIES} websockets_shared ${JSON-C_LIBRARIES} ${LIBUV_LIBRARIES})
+elseif(TARGET websockets)
+    set(LINK_LIBS ${ZLIB_LIBRARIES} websockets ${JSON-C_LIBRARIES} ${LIBUV_LIBRARIES})
 else()
     set(LINK_LIBS ${ZLIB_LIBRARIES} ${LIBWEBSOCKETS_LIBRARIES} ${JSON-C_LIBRARIES} ${LIBUV_LIBRARIES})
 endif()

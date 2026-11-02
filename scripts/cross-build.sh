@@ -11,10 +11,11 @@ BUILD_ROOT="${BUILD_ROOT:-/opt/build}"
 BUILD_TARGET="${BUILD_TARGET:-x86_64}"
 
 ZLIB_VERSION="${ZLIB_VERSION:-1.3.2}"
-JSON_C_VERSION="${JSON_C_VERSION:-0.18}"
-OPENSSL_VERSION="${OPENSSL_VERSION:-3.6.1}"
-LIBUV_VERSION="${LIBUV_VERSION:-1.52.1}"
-LIBWEBSOCKETS_VERSION="${LIBWEBSOCKETS_VERSION:-4.5.7}"
+JSON_C_VERSION="${JSON_C_VERSION:-0.19}"
+# Use the supported 3.5 LTS branch rather than the end-of-life 3.6 series.
+OPENSSL_VERSION="${OPENSSL_VERSION:-3.5.9}"
+LIBUV_VERSION="${LIBUV_VERSION:-1.53.0}"
+LIBWEBSOCKETS_VERSION="${LIBWEBSOCKETS_VERSION:-4.5.8}"
 
 build_zlib() {
     echo "=== Building zlib-${ZLIB_VERSION} (${TARGET})..."
@@ -60,14 +61,11 @@ map_openssl_target() {
 build_openssl() {
     openssl_target=$(map_openssl_target "${BUILD_TARGET}")
     echo "=== Building openssl-${OPENSSL_VERSION} (${openssl_target})..."
-    curl -sLo- "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" | tar xz -C "${BUILD_DIR}"
+    curl -fSsLo- "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" | tar xz -C "${BUILD_DIR}"
     pushd "${BUILD_DIR}/openssl-${OPENSSL_VERSION}"
         openssl_cflags="-fPIC -latomic"
         case ${BUILD_TARGET} in
             s390x) openssl_cflags="${openssl_cflags} -march=z10" ;;
-            win32)
-                curl -sLo- https://github.com/openssl/openssl/pull/29826.patch | patch -p1
-                ;;
         esac
         env CC=gcc CROSS_COMPILE="${TARGET}-" CFLAGS="${openssl_cflags}" \
             ./Configure "${openssl_target}" no-ssl3 no-err -DOPENSSL_SMALL_FOOTPRINT --prefix="${STAGE_DIR}" \
@@ -105,7 +103,6 @@ build_libwebsockets() {
     echo "=== Building libwebsockets-${LIBWEBSOCKETS_VERSION} (${TARGET})..."
     curl -fSsLo- "https://github.com/warmcat/libwebsockets/archive/v${LIBWEBSOCKETS_VERSION}.tar.gz" | tar xz -C "${BUILD_DIR}"
     pushd "${BUILD_DIR}/libwebsockets-${LIBWEBSOCKETS_VERSION}"
-        sed -i 's/ websockets_shared//g' cmake/libwebsockets-config.cmake.in
         rm -rf build && mkdir -p build && cd build
         cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD_DIR}/cross-${TARGET}.cmake" \
             -DCMAKE_BUILD_TYPE=RELEASE \
@@ -178,7 +175,9 @@ build() {
 
     rm -rf "${STAGE_DIR}" "${BUILD_DIR}"
     mkdir -p "${STAGE_DIR}" "${BUILD_DIR}"
-    export PKG_CONFIG_PATH="${STAGE_DIR}/lib/pkgconfig"
+    # Never let host .pc files contaminate target feature checks or link flags.
+    export PKG_CONFIG_LIBDIR="${STAGE_DIR}/lib/pkgconfig:${STAGE_DIR}/lib64/pkgconfig"
+    export PKG_CONFIG_PATH="${PKG_CONFIG_LIBDIR}"
 
     install_cmake_cross_file ${SYSTEM}
 
