@@ -36,6 +36,12 @@ mark_as_advanced(LIBUV_INCLUDE_DIR LIBUV_LIBRARY)
 if(LIBUV_FOUND)
     SET(LIBUV_INCLUDE_DIRS "${LIBUV_INCLUDE_DIR}")
     SET(LIBUV_LIBRARIES "${LIBUV_LIBRARY}")
+    if(WIN32)
+        # Raw library discovery does not carry libuv's static system dependencies.
+        # Keep these in sync with upstream's Windows uv_libraries.
+        list(APPEND LIBUV_LIBRARIES
+            psapi user32 advapi32 iphlpapi userenv ws2_32 dbghelp ole32 shell32 synchronization)
+    endif()
 endif()
 
 find_path(JSON-C_INCLUDE_DIR NAMES json.h PATH_SUFFIXES json-c)
@@ -76,8 +82,6 @@ if(LWS_OPENSSL_ENABLED AND NOT LWS_MBEDTLS_ENABLED)
 endif()
 
 if(WIN32)
-    # libuv static requires dbghelp for MiniDumpWriteDump/Sym* APIs
-    list(APPEND LINK_LIBS shell32 ws2_32 dbghelp)
     if(MSVC)
         find_package(getopt CONFIG)
         if(getopt_FOUND)

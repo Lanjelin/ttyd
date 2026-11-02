@@ -95,6 +95,13 @@ There are no branch-driven `latest`/`alpine` image tags and no Docker Hub
 publishing. GHCR authentication uses GitHub's automatic `GITHUB_TOKEN`; Docker
 Hub secrets are not used.
 
+The GHCR package must also grant this repository workflow access. In the
+package's **Settings → Manage Actions access**, grant `Lanjelin/ttyd` **Write**
+access, or verify that repository permission inheritance provides it. A linked
+repository alone is not proof of that grant. If a push reports
+`permission_denied: write_package`, check package access before changing tokens
+or workflow permissions.
+
 # Usage
 
 ## Command-line Options

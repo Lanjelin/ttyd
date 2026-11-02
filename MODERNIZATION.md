@@ -16,10 +16,11 @@ supported platforms have been certified.
 | CMake | Dead pre-3.1 branch despite 3.12 minimum | Retain 3.12 minimum, policies through 4.0, normal C99 selection |
 | libwebsockets discovery | Raw library names outside MSVC | Select exported targets on all platforms; custom-prefix linking fixed |
 | Cross pkg-config | Only staged `lib` searched; host metadata could leak in | Isolated target `PKG_CONFIG_LIBDIR`, including staged `lib64` for OpenSSL |
-| zlib cross-build | 1.3.2 | Retained |
+| zlib cross-build | 1.3.2 from zlib.net | Retain 1.3.2; use the official GitHub release asset after an invalid archive response |
 | json-c cross-build | 0.18 | 0.19, including CMake 4 support |
 | OpenSSL cross-build | 3.6.1 and downloaded MinGW patch | 3.5.9 LTS; fix already included, external patch removed |
 | libuv cross-build | 1.52.1 | 1.53.0 |
+| Windows static linking | Raw libuv archive without complete system linkage; MSVC dynamic CRT default | Restore upstream libuv system libraries, including synchronization; match vcpkg's static CRT |
 | libwebsockets cross-build | 4.5.7 and config-file patch | 4.5.8 maintenance release; config patch replaced by target selection |
 | Containers | Ubuntu 24.04; floating Alpine | Ubuntu retained; Alpine pinned to supported 3.24 |
 | Snap | core20, old runtime package names, upstream source checkout | core24, current package names/libuv event plugin, local fork checkout, craftctl |
@@ -171,12 +172,48 @@ configuration. The production-only dependency audit reports no suggestions.
   The release-packaging shell also correctly named 14 fixture assets and
   generated verified SHA256 checksums in an isolated, source-free workspace.
 
-Not certified here: Windows/non-x86 targets, installed snap (Snapcraft is not
-available locally), clipboard integration and ZMODEM transfers. A trzsz
-download attempt reached the browser file-picker flow but was cancelled under
-headless automation; successful end-to-end transfer is not claimed. No
-publishing was performed. These are release-validation limits, not hidden
-claims of platform coverage.
+Not certified here: MSVC builds/native Windows execution, non-x86 hardware,
+installed snap (Snapcraft is not available locally), clipboard integration and
+ZMODEM transfers. A trzsz download attempt reached the browser file-picker flow
+but was cancelled under headless automation; successful end-to-end transfer is
+not claimed. Local verification did not publish images or releases. These are
+release-validation limits, not hidden claims of platform coverage.
+
+## First hosted release run: 1.8.0
+
+Inspected [run 41443189974](https://github.com/Lanjelin/ttyd/actions/runs/41443189974)
+without rerunning jobs or changing remote state.
+
+- **MSVC and win32:** static libuv introduced `WaitOnAddress` and
+  `WakeByAddressSingle` references, but raw library discovery omitted their
+  system-library dependencies. Restored the Windows system-library list from
+  upstream libuv, including `synchronization`. MSVC also emitted a `LIBCMT`
+  runtime mismatch; the static vcpkg job now selects `/MT` (Release) and `/MTd`
+  (Debug), rather than suppressing that warning.
+- **ppc64le:** failed while unpacking zlib, before compilation, because the
+  zlib.net response was not gzip data. Switched to zlib's official GitHub
+  release asset. Its downloaded SHA256 matched the upstream release metadata.
+- **Verification:** complete win32 and ppc64le cross-builds passed locally.
+  The Windows PE executable imports both previously unresolved symbols from
+  the Windows synchronization API set. The PowerPC binary ran under QEMU
+  10.2.3, served HTTP index/token requests, and completed a WebSocket PTY command
+  round trip. Linux configure/build/CLI, shell syntax and actionlint passed.
+  Initial local cross-build attempts hit temporary disk quota; owned obsolete
+  build trees were cleared and the complete checks then passed sequentially.
+  MSVC compilation/runtime still needs a hosted Windows run.
+- **Docker:** all four architectures built for both variants. Ubuntu publication
+  succeeded, creating the public `ghcr.io/lanjelin/ttyd:1.8.0` image; Alpine
+  publication failed with `permission_denied: write_package`. The job token
+  already had `packages: write`, and package metadata links it to this fork.
+  Effective inherited permissions and Manage Actions access grants are not
+  exposed by the available package APIs. Check repository **Write** access in
+  the package settings; if already correct, the creation-versus-subsequent-push
+  authorization discrepancy remains unexplained. No speculative Docker
+  configuration or credential changes were made.
+
+Rerunning the old tag's jobs uses its original commit, not these local fixes.
+Commit fixes and select a new matching patch version/tag for the next attempt;
+prefer that over moving `1.8.0`, since its Ubuntu image is already public.
 
 ## Sources
 

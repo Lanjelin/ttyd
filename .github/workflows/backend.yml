@@ -49,7 +49,8 @@ jobs:
         shell: pwsh
         run: |
           $env:VCPKG_ROOT = "${{ env.VCPKG_ROOT }}"
-          cmake -S . -B build -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }}
+          # Match the static CRT used by x64-windows-static dependencies.
+          cmake -S . -B build -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }} '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>'
           cmake --build build --config Release
       - uses: actions/upload-artifact@v7
         with:

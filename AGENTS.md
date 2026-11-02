@@ -40,6 +40,12 @@ cmake --build build --parallel
 Use `CMAKE_PREFIX_PATH` for custom library installs. Verify with a browser at
 `http://127.0.0.1:7681/`; do not expose a test shell on all interfaces.
 
+On Windows, static libuv needs its upstream system-library dependencies,
+including `synchronization` for `WaitOnAddress`/`WakeByAddressSingle`. Raw
+`find_library` does not propagate them. MSVC builds using vcpkg's
+`x64-windows-static` triplet must also use the matching static CRT (`/MT` for
+Release, `/MTd` for Debug); see the backend workflow's runtime-library setting.
+
 Frontend requirements and commands are in `html/README.md` and
 `html/package.json`. Use the package manager version pinned in `packageManager`,
 not a global Yarn Classic or floating `yarn@stable`. Install with
