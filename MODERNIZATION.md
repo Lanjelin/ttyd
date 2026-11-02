@@ -40,6 +40,10 @@ supported platforms have been certified.
   legacy viewport and the unused space outside whole character cells. A
   ResizeObserver batches refits after container/renderer size changes; applying
   preferences also refits for line height and letter spacing, not just font size.
+- Disable native scrolling on the obsolete `.xterm-viewport`: xterm 6's active
+  scrollbar belongs to `.xterm-scrollable-element`. Leaving the old viewport's
+  `overflow-y: scroll` enabled can paint a second, light native scrollbar at the
+  browser edge behind the active scrollbar.
 - OpenSSL's numerical version decreased intentionally: 3.6 support ended on
   2026-11-01, whereas 3.5 LTS is supported through April 2030. A larger version
   number is not necessarily a better maintenance baseline.
@@ -143,6 +147,14 @@ configuration. The production-only dependency audit reports no suggestions.
   WebGL at 1 and DOM at 1.25; emulated high-DPI WebGL has a browser backing-store
   measurement mismatch, so its glyph screenshots are not certified. The updated
   static artifact is available locally as `build/ttyd.alpine.x86_64`.
+- Right-edge follow-up: frontend checks/build and native rebuilds passed.
+  A real 200-line scrollback session confirmed the obsolete viewport reserves
+  no native scrollbar width, even with an explicitly white native scrollbar
+  style. The active xterm scrollbar remained usable: mouse-wheel scrolling
+  moved the viewport and dragging its thumb reached the first output line.
+  The rebuilt bundle's edge was checked visually. The supplied Alpine VM LAN
+  endpoint refused browser and workstation connections, so verification used
+  the rebuilt static binary locally; no commands were sent to the VM terminal.
 
 Not certified here: Windows/non-x86 targets, installed snap (Snapcraft is not
 available locally), clipboard integration and ZMODEM transfers. A trzsz

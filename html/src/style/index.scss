@@ -20,6 +20,8 @@ body {
     height: 100%;
     .xterm-viewport {
       background-color: inherit;
+      // xterm 6 scrolls in .xterm-scrollable-element, not this legacy viewport.
+      overflow: hidden;
     }
   }
 }
