@@ -1,5 +1,4 @@
-![backend](https://github.com/Lanjelin/ttyd/actions/workflows/backend.yml/badge.svg)
-![frontend](https://github.com/Lanjelin/ttyd/actions/workflows/frontend.yml/badge.svg)
+![release](https://github.com/Lanjelin/ttyd/actions/workflows/release.yml/badge.svg)
 [![GitHub Releases](https://img.shields.io/github/downloads/Lanjelin/ttyd/total)](https://github.com/Lanjelin/ttyd/releases)
 [![Packaging status](https://repology.org/badge/tiny-repos/ttyd.svg)](https://repology.org/project/ttyd/versions)
 ![GitHub](https://img.shields.io/github/license/Lanjelin/ttyd)
@@ -70,9 +69,31 @@ For browser changes, use Node.js 24 or newer and the pinned Yarn version;
 see [html/README.md](html/README.md). Rebuild the native executable after
 regenerating the browser bundle.
 
-Fork container images are published to `ghcr.io/lanjelin/ttyd` by the Docker
-workflow. Docker Hub publishing is optional and uses the configured
-`DOCKER_HUB_USER`/`DOCKER_HUB_TOKEN` secrets, not the upstream namespace.
+## Release automation
+
+Branch pushes (including `main`) and pull requests do not start builds or
+publish anything. Only a **new tag push** starts the release workflow; moving
+or deleting an existing tag does not start release jobs.
+
+Before tagging, update the version in `CMakeLists.txt` and commit the regenerated
+`src/html.h` with any frontend changes. The tag must match that version, either
+as `X.Y.Z` or `vX.Y.Z`.
+
+The tag workflow validates the version, checks/builds the frontend, then runs
+native builds and container publishing. After both succeed, it creates a
+**draft GitHub release** with binaries and checksums. Publish the draft manually
+when ready. Existing releases are not updated automatically.
+
+Images are published only to GHCR, using the tag's exact name:
+
+```text
+ghcr.io/lanjelin/ttyd:<tag>
+ghcr.io/lanjelin/ttyd:<tag>-alpine
+```
+
+There are no branch-driven `latest`/`alpine` image tags and no Docker Hub
+publishing. GHCR authentication uses GitHub's automatic `GITHUB_TOKEN`; Docker
+Hub secrets are not used.
 
 # Usage
 

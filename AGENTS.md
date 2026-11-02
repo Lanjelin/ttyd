@@ -81,6 +81,11 @@ for C or generated-header changes. Validate shell scripts and workflow syntax
 when changing automation. Cross-target CI, Windows, containers and snap builds
 require their own environments; do not claim local Linux checks prove them.
 
+Automation is intentionally new-tag-only. `release.yml` validates the version,
+runs the reusable frontend workflow, then native builds and GHCR publishing;
+both must succeed before creating a draft release. Branch/PR pushes do not build
+or publish. Docker Hub is not used. Keep this trigger policy when editing CI.
+
 Keep changes focused. Document compatibility changes, verification evidence and
 remaining risks in `MODERNIZATION.md`; never describe an untested release path
 as verified. Do not publish releases/images or alter credentials as part of

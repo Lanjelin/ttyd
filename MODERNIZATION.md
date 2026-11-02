@@ -23,8 +23,8 @@ supported platforms have been certified.
 | libwebsockets cross-build | 4.5.7 and config-file patch | 4.5.8 maintenance release; config patch replaced by target selection |
 | Containers | Ubuntu 24.04; floating Alpine | Ubuntu retained; Alpine pinned to supported 3.24 |
 | Snap | core20, old runtime package names, upstream source checkout | core24, current package names/libuv event plugin, local fork checkout, craftctl |
-| CI | Frontend path filters missed nested source; no native HTTP smoke | Recursive frontend/CMake filters, native build + HTTP smoke, release write permission |
-| Publishing | Hardcoded upstream image namespace | Lowercase fork GHCR namespace; Docker Hub optional via configured secrets |
+| CI | Branch/PR builds and independent publishing | New-tag-only orchestration; frontend checks gate native/container builds; release waits for both |
+| Publishing | Hardcoded upstream image namespace | Versioned GHCR images only; Docker Hub removed; GitHub releases remain drafts |
 | Contributor docs | Outdated frontend and manual tooling instructions | AGENTS.md, current build guidance, pinned go-md2man v2 install |
 
 ### Compatibility changes
@@ -52,8 +52,16 @@ supported platforms have been certified.
   libuv support. The cross-build pins describe bundled release binaries, not
   the oldest distribution packages accepted by CMake.
 - Snap packaging now builds the current checkout instead of fetching upstream.
-- The Docker workflow publishes to the fork's GHCR namespace. Docker Hub needs
-  `DOCKER_HUB_USER` and `DOCKER_HUB_TOKEN`; no upstream credentials are assumed.
+- Only newly created tag pushes start automation. Branch pushes (including
+  `main`), pull requests, tag moves and tag deletions do not start build or
+  publishing jobs. Frontend/backend/container workflows are reusable, called
+  only by the tag-triggered release workflow.
+- Tags must match the CMake version, with an optional leading `v`. After
+  frontend checks succeed, native builds and GHCR publishing run; both must
+  succeed before a draft release is created. Existing releases are not updated.
+- Container images use the fork's GHCR namespace and the exact version tag
+  (plus `-alpine` for Alpine). Docker Hub publishing and its secrets have been
+  removed; branch-driven `latest`/`alpine` aliases are no longer generated.
   Distribution packages and upstream releases remain separate from this fork.
 
 ## Intentionally retained / follow-on work
@@ -136,9 +144,8 @@ configuration. The production-only dependency audit reports no suggestions.
 - Both amd64 Dockerfiles built with the final generated bundle and updated
   static native dependencies; CLI version and real browser shell round trips
   passed in Alpine 3.24 and Ubuntu 24.04 containers.
-- `actionlint` workflow validation, `bash -n scripts/cross-build.sh`, main/tag
-  image-tag generation with and without Docker Hub, and man-page regeneration
-  with go-md2man 2.0.7 passed.
+- `actionlint` workflow validation, `bash -n scripts/cross-build.sh`, and
+  man-page regeneration with go-md2man 2.0.7 passed.
 - Rendering correction after Alpine VM feedback: frontend check/build and both
   native rebuilds passed. Browser checks covered matching dark/light backgrounds,
   WebGL/DOM grid fitting, font sizes 13/18/20/24, live line-height/letter-spacing
@@ -155,6 +162,14 @@ configuration. The production-only dependency audit reports no suggestions.
   The rebuilt bundle's edge was checked visually. The supplied Alpine VM LAN
   endpoint refused browser and workstation connections, so verification used
   the rebuilt static binary locally; no commands were sent to the VM terminal.
+- Tag-only automation rewrite: `actionlint` passed. Parsed-workflow smoke cases
+  allowed release jobs only for a new tag, not main/new-branch pushes, pull
+  requests, tag moves or tag deletions. The actual version-check shell accepted
+  matching bare/`v` tags and rejected mismatches; the actual image-metadata shell
+  emitted only the two versioned GHCR image names. No GitHub release or image
+  publication was performed during these checks.
+  The release-packaging shell also correctly named 14 fixture assets and
+  generated verified SHA256 checksums in an isolated, source-free workspace.
 
 Not certified here: Windows/non-x86 targets, installed snap (Snapcraft is not
 available locally), clipboard integration and ZMODEM transfers. A trzsz
