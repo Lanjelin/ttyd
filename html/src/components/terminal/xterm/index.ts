@@ -186,6 +186,7 @@ export class Xterm {
         });
 
         terminal.open(parent);
+        this.updateBackground();
         fitAddon.fit();
     }
 
@@ -218,7 +219,25 @@ export class Xterm {
                 this.overlayAddon?.showOverlay('\u2702', 200);
             })
         );
-        register(addEventListener(window, 'resize', () => fitAddon.fit()));
+        // Fit after layout and xterm's renderer/DPI measurements have settled.
+        let fitFrame = 0;
+        const scheduleFit = () => {
+            if (fitFrame) return;
+            fitFrame = requestAnimationFrame(() => {
+                fitFrame = 0;
+                fitAddon.fit();
+            });
+        };
+        const observer = new ResizeObserver(scheduleFit);
+        const element = terminal.element;
+        if (element?.parentElement) observer.observe(element.parentElement);
+        const screen = element?.querySelector('.xterm-screen');
+        if (screen) observer.observe(screen);
+        register(toDisposable(() => {
+            observer.disconnect();
+            cancelAnimationFrame(fitFrame);
+        }));
+        register(addEventListener(window, 'resize', scheduleFit));
         register(addEventListener(window, 'beforeunload', this.onWindowUnload));
     }
 
@@ -473,10 +492,18 @@ export class Xterm {
                     } else {
                         terminal.options[key] = value;
                     }
-                    if (key.indexOf('font') === 0) fitAddon.fit();
                     break;
             }
         }
+        this.updateBackground();
+        fitAddon.fit();
+    }
+
+    private updateBackground() {
+        document.documentElement.style.setProperty(
+            '--terminal-background',
+            this.terminal.options.theme?.background ?? '#000000'
+        );
     }
 
     private setRendererType(value: RendererType) {

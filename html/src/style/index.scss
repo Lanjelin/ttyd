@@ -4,6 +4,7 @@ body {
   min-height: 100%;
   margin: 0;
   overflow: hidden;
+  background-color: var(--terminal-background, #2b2b2b);
 }
 
 #terminal-container {
@@ -11,8 +12,14 @@ body {
   height: 100%;
   margin: 0 auto;
   padding: 0;
+  background-color: var(--terminal-background, #2b2b2b);
   .terminal {
+    box-sizing: border-box;
+    background-color: inherit;
     padding: 5px;
-    height: calc(100% - 10px);
+    height: 100%;
+    .xterm-viewport {
+      background-color: inherit;
+    }
   }
 }

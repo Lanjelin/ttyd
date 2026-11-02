@@ -36,6 +36,10 @@ supported platforms have been certified.
   WebGL with DOM fallback. Do not treat the removed renderer as a supported alias.
 - Renderer transitions refit the terminal: a real WebGL context-loss smoke
   exposed an 861px DOM grid in an 800px viewport until fitting was repeated.
+- Terminal edges now use the configured theme background, including xterm 6's
+  legacy viewport and the unused space outside whole character cells. A
+  ResizeObserver batches refits after container/renderer size changes; applying
+  preferences also refits for line height and letter spacing, not just font size.
 - OpenSSL's numerical version decreased intentionally: 3.6 support ended on
   2026-11-01, whereas 3.5 LTS is supported through April 2030. A larger version
   number is not necessarily a better maintenance baseline.
@@ -131,6 +135,14 @@ configuration. The production-only dependency audit reports no suggestions.
 - `actionlint` workflow validation, `bash -n scripts/cross-build.sh`, main/tag
   image-tag generation with and without Docker Hub, and man-page regeneration
   with go-md2man 2.0.7 passed.
+- Rendering correction after Alpine VM feedback: frontend check/build and both
+  native rebuilds passed. Browser checks covered matching dark/light backgrounds,
+  WebGL/DOM grid fitting, font sizes 13/18/20/24, live line-height/letter-spacing
+  changes, container-only resizing and viewport resizing. Grid geometry matched
+  FitAddon at pixel ratios 1, 1.25 and 2. Glyph screenshots were checked for
+  WebGL at 1 and DOM at 1.25; emulated high-DPI WebGL has a browser backing-store
+  measurement mismatch, so its glyph screenshots are not certified. The updated
+  static artifact is available locally as `build/ttyd.alpine.x86_64`.
 
 Not certified here: Windows/non-x86 targets, installed snap (Snapcraft is not
 available locally), clipboard integration and ZMODEM transfers. A trzsz
