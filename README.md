@@ -90,6 +90,27 @@ Distribution and third-party packages named `ttyd` are not maintained by this
 project and may install a different version. Use the releases above to install
 ttyd-ng.
 
+### Install with mise
+
+[mise](https://mise.jdx.dev/) can install the release binary directly from this
+repository. Add the following to your `mise.toml`, choosing your desired
+`version` and setting `matching` to the release asset for your platform:
+
+```toml
+[tools]
+"github:Lanjelin/ttyd-ng" = { version = "latest", matching = "ttyd.x86_64", bin = "ttyd" }
+```
+
+Then install and check the executable from the directory containing `mise.toml`:
+
+```sh
+mise install
+mise exec -- ttyd --version
+```
+
+This example selects the latest Linux x86-64 build. Use the release asset table
+above to choose another build.
+
 ### Container images
 
 Container images are available from GHCR with explicit version tags:
