@@ -25,7 +25,7 @@ verify that `yarn install --immutable` succeeds. Keep the local ZMODEM patch in
 
 ## Development
 
-1. Build the native server, then run `./build/ttyd -i 127.0.0.1 -W bash` from the
+1. Build the native server, then run `./build/native/ttyd -i 127.0.0.1 -W bash` from the
    repository root. `-W` is necessary for keyboard input; read-only is the default.
 2. From `html/`, run `yarn start` and open `http://localhost:9000/`.
    The dev server proxies `/token` and `/ws` to port 7681.

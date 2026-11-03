@@ -44,6 +44,11 @@ install_manifest.txt
 CTestTestfile.cmake
 build
 
+# Local container and release staging
+/dist/
+/artifacts/
+/release-assets/
+
 # Clion files
 .idea/
 

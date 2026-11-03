@@ -19,9 +19,11 @@ jobs:
         run: |
           mkdir dist
           for arch in amd64 armv7 arm64 s390x; do
-            env BUILD_TARGET=$arch ./scripts/cross-build.sh
-            [ "$arch" = "armv7" ] && arch="arm" 
-            mkdir -p dist/$arch && cp build/ttyd dist/$arch/ttyd
+            env BUILD_TARGET="$arch" ./scripts/cross-build.sh
+            image_arch="$arch"
+            [ "$arch" = "armv7" ] && image_arch="arm"
+            mkdir -p "dist/$image_arch"
+            cp "build/cross/$arch/ttyd" "dist/$image_arch/ttyd"
           done
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
@@ -33,7 +35,7 @@ jobs:
       - name: Determine docker tags
         id: docker_tag
         run: |
-          IMAGE="${GITHUB_REPOSITORY,,}"
+          IMAGE="${GITHUB_REPOSITORY_OWNER,,}/ttyd-ng"
           {
             echo "tags=ghcr.io/${IMAGE}:${GITHUB_REF_NAME}"
             echo "alpine_tags=ghcr.io/${IMAGE}:${GITHUB_REF_NAME}-alpine"

@@ -8,6 +8,11 @@ ttyd \- Share your terminal over the web
 .SH SYNOPSIS
 \fBttyd\fP [options] <command> [<arguments...>]
 
+.PP
+This manual is the authoritative detailed CLI and client-option reference for
+ttyd-ng, Lanjelin's fork of ttyd. The executable remains \fBttyd\fR; use \fBttyd --help\fR
+for the options available in a particular build.
+
 
 .SH DESCRIPTION
 ttyd is a command-line tool for sharing terminal over the web that runs in *nix and windows systems, with the following features:
@@ -30,6 +35,10 @@ Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE, Windows
 
 
 .SH OPTIONS
+IPv6 and TLS options depend on libwebsockets build features; \fB--ping-interval\fP
+  requires libwebsockets 4 or newer. Such options may be absent from runtime help.
+
+.PP
 -p, --port 
       Port to listen (default: 7681, use \fB0\fR for random port)
 
@@ -308,9 +317,9 @@ If you don't want to enable client certificate verification, remove the \fB--ssl
 
 
 .SH Docker and ttyd
-Docker containers are jailed environments which are more secure, this is useful for protecting the host system, you may use ttyd with docker like this:
+Docker containers are jailed environments which are more secure, this is useful for protecting the host system, you may use ttyd with docker like this. Replace \fB<tag>\fR with an exact published version tag for ttyd-ng; there is no \fBlatest\fR alias:
 .IP \(bu 2
-Sharing single docker container with multiple clients: docker run -it --rm -p 7681:7681 tsl0922/ttyd.
+Sharing single docker container with multiple clients: \fBdocker run -it --rm -p 7681:7681 ghcr.io/lanjelin/ttyd-ng:<tag>\fR\&.
 .IP \(bu 2
 Creating new docker container for each client: ttyd docker run -it --rm ubuntu.
 
@@ -332,4 +341,7 @@ location ~ ^/ttyd(.*)$ {
 
 
 .SH AUTHOR
-Shuanglei Tao <tsl0922@gmail.com> Visit https://github.com/tsl0922/ttyd to get more information and report bugs.
+Original author: Shuanglei Tao <tsl0922@gmail.com>\&. Upstream: https://github.com/tsl0922/ttyd.
+
+.PP
+ttyd-ng fork maintained by Lanjelin. Project information: https://github.com/Lanjelin/ttyd-ng. Report fork bugs at https://github.com/Lanjelin/ttyd-ng/issues.

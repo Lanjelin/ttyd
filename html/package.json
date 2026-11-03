@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Share your terminal over the web",
   "repository": {
-    "url": "https://github.com/Lanjelin/ttyd.git",
+    "url": "https://github.com/Lanjelin/ttyd-ng.git",
     "type": "git"
   },
   "author": "Shuanglei Tao <tsl0922@gmail.com>",

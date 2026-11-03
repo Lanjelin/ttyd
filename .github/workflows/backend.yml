@@ -14,11 +14,12 @@ jobs:
           sudo apt-get install -y build-essential cmake libuv1-dev libjson-c-dev libwebsockets-dev libssl-dev zlib1g-dev
       - name: Build and smoke native server
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
-          ./build/ttyd --version
-          ./build/ttyd --help
-          ./build/ttyd -i 127.0.0.1 -p 7681 sh &
+          cmake -S "${GITHUB_WORKSPACE}" -B "${GITHUB_WORKSPACE}/build/native" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "${GITHUB_WORKSPACE}/build/native" --parallel
+          python3 scripts/check-options.py build/native/ttyd
+          ./build/native/ttyd --version
+          ./build/native/ttyd --help
+          ./build/native/ttyd -i 127.0.0.1 -p 7681 sh &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID"; wait "$SERVER_PID" || true' EXIT
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:7681/ -o /tmp/ttyd-index.html
@@ -50,12 +51,12 @@ jobs:
         run: |
           $env:VCPKG_ROOT = "${{ env.VCPKG_ROOT }}"
           # Match the static CRT used by x64-windows-static dependencies.
-          cmake -S . -B build -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }} '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>'
-          cmake --build build --config Release
+          cmake -S "${{ github.workspace }}" -B "${{ github.workspace }}/build/native" -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}" -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }} '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>'
+          cmake --build "${{ github.workspace }}/build/native" --config Release
       - uses: actions/upload-artifact@v7
         with:
           name: ttyd.msvc
-          path: build/Release/ttyd.exe
+          path: build/native/Release/ttyd.exe
   cross:
     runs-on: ubuntu-24.04
     strategy:
@@ -75,5 +76,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: ttyd.${{ matrix.target }}
-          path: build/ttyd*
+          path: build/cross/${{ matrix.target }}/${{ matrix.target == 'win32' && 'ttyd.exe' || 'ttyd' }}
 

@@ -137,7 +137,7 @@ static void print_help() {
           "    -d, --debug             Set log level (default: 7)\n"
           "    -v, --version           Print the version and exit\n"
           "    -h, --help              Print this text and exit\n\n"
-          "Visit https://github.com/Lanjelin/ttyd to get more information and report bugs.\n",
+          "Visit https://github.com/Lanjelin/ttyd-ng to get more information and report bugs.\n",
           TTYD_VERSION
   );
   // clang-format on

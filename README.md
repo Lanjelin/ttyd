@@ -1,17 +1,21 @@
-![release](https://github.com/Lanjelin/ttyd/actions/workflows/release.yml/badge.svg)
-[![GitHub Releases](https://img.shields.io/github/downloads/Lanjelin/ttyd/total)](https://github.com/Lanjelin/ttyd/releases)
-[![Packaging status](https://repology.org/badge/tiny-repos/ttyd.svg)](https://repology.org/project/ttyd/versions)
-![GitHub](https://img.shields.io/github/license/Lanjelin/ttyd)
+![release](https://github.com/Lanjelin/ttyd-ng/actions/workflows/release.yml/badge.svg)
+[![GitHub Releases](https://img.shields.io/github/downloads/Lanjelin/ttyd-ng/total)](https://github.com/Lanjelin/ttyd-ng/releases)
+![GitHub](https://img.shields.io/github/license/Lanjelin/ttyd-ng)
 
-# ttyd - Share your terminal over the web
+# ttyd-ng - Share your terminal over the web
 
-ttyd is a simple command-line tool for sharing terminal over the web.
+ttyd-ng is a command-line tool for sharing terminal over the web, forked from
+[tsl0922/ttyd](https://github.com/tsl0922/ttyd). The executable is named `ttyd`
+for compatibility with existing scripts and services.
 
-This repository is the [Lanjelin/ttyd](https://github.com/Lanjelin/ttyd) fork of
-[tsl0922/ttyd](https://github.com/tsl0922/ttyd). Distribution packages and upstream
-images may not include this fork's changes. See [MODERNIZATION.md](MODERNIZATION.md)
-for dependency decisions and compatibility changes, and [AGENTS.md](AGENTS.md)
-for contributor guidance.
+Install binaries or container images from
+[Lanjelin/ttyd-ng](https://github.com/Lanjelin/ttyd-ng) to use features such as
+custom font loading. Upstream releases and distribution packages may not include
+these features.
+
+- [Command and client-option reference](man/ttyd.man.md)
+- [Build guide](docs/building.md)
+- [Current compatibility and known risks](MODERNIZATION.md)
 
 ![screenshot](https://github.com/tsl0922/ttyd/raw/main/screenshot.gif)
 
@@ -28,166 +32,140 @@ for contributor guidance.
 
 # Installation
 
-## Install on macOS
+## Download binaries
 
-- Install with [Homebrew](https://brew.sh): `brew install ttyd`
-- Install with [MacPorts](https://www.macports.org): `sudo port install ttyd`
+Download prebuilt binaries from the
+[ttyd-ng Releases page](https://github.com/Lanjelin/ttyd-ng/releases).
 
-## Install on Linux
+1. Choose a release and read its notes.
+2. Download the binary matching your operating system and architecture, plus
+   that release's `SHA256SUMS`.
+3. Verify the checksum before installing or running the binary.
 
-- Install on Debian/Ubuntu: `sudo apt install ttyd`
-- Install the snap: `sudo snap install ttyd --classic`
-- Install on OpenWrt: `opkg install ttyd`
-- Install on Gentoo: clone the [repo](https://bitbucket.org/mgpagano/ttyd/src/master) and follow the directions [here](https://wiki.gentoo.org/wiki/Custom_repository#Creating_a_local_repository).
-- Install with [Homebrew](https://docs.brew.sh/Homebrew-on-Linux) : `brew install ttyd`
-- Precompiled binaries from this fork, when published: [releases](https://github.com/Lanjelin/ttyd/releases)
+| Platform | Release asset |
+| --- | --- |
+| Linux x86-64, including Alpine | `ttyd.x86_64` |
+| Linux ARM64 | `ttyd.aarch64` |
+| Linux 32-bit x86 | `ttyd.i686` |
+| Linux PowerPC64 little-endian | `ttyd.ppc64le` |
+| Linux s390x | `ttyd.s390x` |
+| Windows x64 | `ttyd.msvc.exe` or `ttyd.win32.exe` (both are 64-bit) |
 
-## Install on Windows
+For other ARM/MIPS variants, match both the architecture and ABI when selecting
+an asset. On macOS, [build from source](docs/building.md#native-build).
 
-- Binary version: download from this fork's [releases](https://github.com/Lanjelin/ttyd/releases), when available
-- Install with [WinGet](https://github.com/microsoft/winget-cli): `winget install tsl0922.ttyd`
-- Install with [Scoop](https://scoop.sh/#/apps?q=ttyd&s=2&d=1&o=true): `scoop install ttyd`
-- [Compile on Windows](https://github.com/tsl0922/ttyd/wiki/Compile-on-Windows)
+### Linux download and user-local installation
+
+The following example is for Linux x86-64. Replace `TAG` with the exact published
+tag from this repository's Releases page, including a leading `v` if present.
+For another Linux architecture, change `ASSET` using the table above.
+
+```sh
+TAG='REPLACE_WITH_PUBLISHED_TAG'
+ASSET='ttyd.x86_64'
+URL="https://github.com/Lanjelin/ttyd-ng/releases/download/$TAG"
+mkdir -p ttyd-download &&
+  cd ttyd-download &&
+  curl --fail --location --output "$ASSET" "$URL/$ASSET" &&
+  curl --fail --location --output SHA256SUMS "$URL/SHA256SUMS" &&
+  sha256sum --check --ignore-missing SHA256SUMS &&
+  mkdir -p "$HOME/.local/bin" &&
+  install -m 0755 "$ASSET" "$HOME/.local/bin/ttyd"
+```
+
+Run `"$HOME/.local/bin/ttyd" --version` to check the installed binary. Add
+`"$HOME/.local/bin"` to your `PATH` if needed. The checksum command uses GNU
+`sha256sum`; it checks the downloaded asset while ignoring other release
+assets that were not downloaded.
+
+On Windows, download an x64 `.exe` and `SHA256SUMS` from the same release.
+Use PowerShell's `Get-FileHash .\ttyd.msvc.exe -Algorithm SHA256` (or the
+`ttyd.win32.exe` filename) and compare it with the corresponding checksum entry.
+Then run the executable directly or place it in a directory on your `PATH`.
+
+Distribution and third-party packages named `ttyd` are not maintained by this
+project and may install a different version. Use the releases above to install
+ttyd-ng.
+
+### Container images
+
+Container images are available from GHCR with explicit version tags:
+
+```text
+ghcr.io/lanjelin/ttyd-ng:<tag>
+ghcr.io/lanjelin/ttyd-ng:<tag>-alpine
+```
+
+Replace `<tag>` with the exact release tag, including a leading `v` if present.
+There are no `latest`/`alpine` aliases. See the
+[build guide](docs/building.md#local-container-images) to build an image locally.
 
 ## Build from source
 
-Install a C99 compiler, CMake, libuv, json-c, zlib and libwebsockets development
-packages. libwebsockets must have libuv support enabled (`-DLWS_WITH_LIBUV=ON`);
-its TLS backend may also require OpenSSL development packages. For example, on
-Debian/Ubuntu:
+Install the prerequisites in the [build guide](docs/building.md#native-build),
+then run:
 
 ```sh
-sudo apt install build-essential cmake libuv1-dev libjson-c-dev \
-  libwebsockets-dev libssl-dev zlib1g-dev
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-./build/ttyd -i 127.0.0.1 -W bash
+cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --parallel
+./build/native/ttyd -i 127.0.0.1 -W bash
 ```
 
-The committed browser bundle allows native-only builds without Node.js.
-For browser changes, use Node.js 24 or newer and the pinned Yarn version;
-see [html/README.md](html/README.md). Rebuild the native executable after
-regenerating the browser bundle.
-
-## Release automation
-
-Branch pushes (including `main`) and pull requests do not start builds or
-publish anything. Only a **new tag push** starts the release workflow; moving
-or deleting an existing tag does not start release jobs.
-
-Before tagging, update the version in `CMakeLists.txt` and commit the regenerated
-`src/html.h` with any frontend changes. The tag must match that version, either
-as `X.Y.Z` or `vX.Y.Z`.
-
-The tag workflow validates the version, checks/builds the frontend, then runs
-native builds and container publishing. After both succeed, it creates a
-**draft GitHub release** with binaries and checksums. Publish the draft manually
-when ready. Existing releases are not updated automatically.
-
-Images are published only to GHCR, using the tag's exact name:
-
-```text
-ghcr.io/lanjelin/ttyd:<tag>
-ghcr.io/lanjelin/ttyd:<tag>-alpine
-```
-
-There are no branch-driven `latest`/`alpine` image tags and no Docker Hub
-publishing. GHCR authentication uses GitHub's automatic `GITHUB_TOKEN`; Docker
-Hub secrets are not used.
-
-The GHCR package must also grant this repository workflow access. In the
-package's **Settings → Manage Actions access**, grant `Lanjelin/ttyd` **Write**
-access, or verify that repository permission inheritance provides it. A linked
-repository alone is not proof of that grant. If a push reports
-`permission_denied: write_package`, check package access before changing tokens
-or workflow permissions.
+The committed browser bundle allows native-only builds without Node.js. See the
+build guide for frontend rebuilds, Alpine-compatible static binaries, and local
+container images.
 
 # Usage
 
-## Command-line Options
+## Quick start
 
-```
-USAGE:
-    ttyd [options] <command> [<arguments...>]
-
-OPTIONS:
-    -p, --port              Port to listen (default: 7681, use `0` for random port)
-    -i, --interface         Network interface to bind (eg: eth0), or UNIX domain socket path (eg: /var/run/ttyd.sock)
-    -U, --socket-owner      User owner of the UNIX domain socket file, when enabled (eg: user:group)
-    -c, --credential        Credential for basic authentication (format: username:password)
-    -H, --auth-header       HTTP Header name for auth proxy, this will configure ttyd to let a HTTP reverse proxy handle authentication
-    -u, --uid               User id to run with
-    -g, --gid               Group id to run with
-    -s, --signal            Signal to send to the command when exit it (default: 1, SIGHUP)
-    -w, --cwd               Working directory to be set for the child program
-    -a, --url-arg           Allow client to send command line arguments in URL (eg: http://localhost:7681?arg=foo&arg=bar)
-    -W, --writable          Allow clients to write to the TTY (readonly by default)
-    -t, --client-option     Send option to client (format: key=value), repeat to add more options
-    -T, --terminal-type     Terminal type to report, default: xterm-256color
-    -O, --check-origin      Do not allow websocket connection from different origin
-    -m, --max-clients       Maximum clients to support (default: 0, no limit)
-    -o, --once              Accept only one client and exit on disconnection
-    -q, --exit-no-conn      Exit on all clients disconnection
-    -B, --browser           Open terminal with the default system browser
-    -I, --index             Custom index.html path
-        --font              Local font file (woff2, woff, ttf, otf) or HTTP(S) font URL
-    -b, --base-path         Expected base path for requests coming from a reverse proxy (eg: /mounted/here, max length: 128)
-    -P, --ping-interval     Websocket ping interval(sec) (default: 5)
-    -6, --ipv6              Enable IPv6 support
-    -S, --ssl               Enable SSL
-    -C, --ssl-cert          SSL certificate file path
-    -K, --ssl-key           SSL key file path
-    -A, --ssl-ca            SSL CA file path for client certificate verification
-    -d, --debug             Set log level (default: 7)
-    -v, --version           Print the version and exit
-    -h, --help              Print this text and exit
+```sh
+ttyd -i 127.0.0.1 -W bash
 ```
 
-Read the example usage on the [wiki](https://github.com/tsl0922/ttyd/wiki/Example-Usage).
+Open `http://127.0.0.1:7681/`. Omit `-W` for a read-only terminal. Keep test
+shells on loopback; configure authentication and transport security before
+exposing a deployment.
+
+Use `ttyd --help` for options available in your build. The
+[manual](man/ttyd.man.md) is the authoritative detailed CLI and client-option
+reference; the installed equivalent is `man ttyd`. Upstream
+[usage examples](https://github.com/tsl0922/ttyd/wiki/Example-Usage) may not cover
+this fork's additions.
 
 ## Custom terminal font
 
-Serve one regular font file without embedding it in the executable:
+Serve one regular font file outside the executable, or have browsers fetch a
+font file directly:
 
 ```sh
-ttyd -i 127.0.0.1 --font /srv/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+ttyd -i 127.0.0.1 --font /srv/fonts/JetBrainsMonoNerdFont-Regular.woff2 -W bash
+ttyd -i 127.0.0.1 --font https://example.com/fonts/JetBrainsMonoNerdFont-Regular.woff2 -W bash
 ```
 
-Local `.woff2`, `.woff`, `.ttf`, and `.otf` files must be readable regular files.
-Only the configured file is served at `/font` (or `<base-path>/font`), using the
-same HTTP authentication as the terminal page; its directory is not exposed.
-WOFF2 is recommended for smaller downloads.
+[Nerd Fonts WOFF2](https://nick2bad4u.github.io/nerd-fonts-woff2/) is a possible
+third-party source of CDN-hosted webfonts. Choose a regular monospace font and
+copy its direct `.woff2` CDN URL into `--font`; the font browser's page URL is
+not a font-file URL.
 
-Alternatively, have each browser fetch a font file directly:
-
-```sh
-ttyd -i 127.0.0.1 --font https://example.com/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
-```
-
-Use a direct font-file URL, not a CDN stylesheet. ttyd does not download or proxy
-remote fonts. The font host must allow cross-origin font requests through CORS,
-and any deployed Content Security Policy must permit the font source. Use HTTPS
-for an HTTPS terminal page to avoid mixed-content blocking. Every browser needs
-connectivity to the font host; server connectivity alone is insufficient.
-
-The browser loads and registers the font before opening the terminal, selecting
-an internal family alias automatically. No family-name flag is needed. A loaded
-`--font` takes precedence over `-t fontFamily=...` and the `fontFamily` URL
-preference; if loading fails, a browser console warning is logged and normal
-font-family preferences provide the fallback. Without `--font`, `fontFamily`
-only selects an already available browser font; it does not fetch font bytes.
-
-`-t fontSize=18`, `-t fontWeight=normal`, and `-t fontWeightBold=bold` remain
-independent controls. One regular file does not configure separate bold/italic
-faces; browser synthesis or fallback may be used. The bundled client implements
-font loading; a custom `--index` page must implement it separately. Add `-W` if
-keyboard input is required; read-only remains the default.
+Local fonts use the terminal's HTTP authentication and base path; their
+directory is not exposed. A loaded font is selected automatically. Remote URLs
+must point to font files, not stylesheets, and depend on browser connectivity,
+CORS, HTTPS/mixed-content rules, and CSP. See the
+[font reference](man/ttyd.man.md#custom-font) for formats, preference precedence,
+fallback, and weight/style limits.
 
 ## Browser Support
 
-Modern browsers, See [Browser Support](https://github.com/xtermjs/xterm.js#browser-support).
+Modern browsers are supported; see the
+[xterm.js browser support list](https://github.com/xtermjs/xterm.js#browser-support).
 
 ## Alternatives
 
 * [Wetty](https://github.com/krishnasrinivas/wetty): [Node](https://nodejs.org) based web terminal (SSH/login)
 * [GoTTY](https://github.com/yudai/gotty): [Go](https://golang.org) based web terminal
+
+## Development
+
+See the [build guide](docs/building.md), [release procedures](docs/releasing.md),
+and [project history](docs/history.md) for contributor and maintainer information.

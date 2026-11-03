@@ -1,11 +1,14 @@
-# Working on ttyd
+# Working on ttyd-ng
 
 ## Project and ownership
 
-This is [Lanjelin/ttyd](https://github.com/Lanjelin/ttyd), a fork of
+This is [Lanjelin/ttyd-ng](https://github.com/Lanjelin/ttyd-ng), a fork of
 [tsl0922/ttyd](https://github.com/tsl0922/ttyd). Preserve upstream attribution and
 license notices. Do not assume upstream release binaries, distro packages, or
-Docker Hub images contain this fork's changes.
+third-party images contain this fork's changes.
+
+The project/repository and installable image/package identities are `ttyd-ng`;
+the executable, CLI, CMake target and installed binary path remain `ttyd`.
 
 ## Code map
 
@@ -18,9 +21,11 @@ Docker Hub images contain this fork's changes.
 - `src/html.h`: generated compressed frontend; never hand-edit.
 - `CMakeLists.txt`, `cmake/`: native configuration and version detection.
 - `scripts/cross-build.sh`: static cross-build dependencies and target mapping.
-- `.github/workflows/`, `Dockerfile*`, `snap/`: CI, publishing and packaging.
+- `.github/workflows/`, `Dockerfile*`: CI, publishing and container packaging.
 - `man/ttyd.man.md`: manual source; `man/ttyd.1` is its generated output.
-- `MODERNIZATION.md`: dependency decisions, remaining risks and release checklist.
+- `MODERNIZATION.md`: current dependency decisions, compatibility and remaining risks.
+- `docs/building.md`, `docs/releasing.md`: build commands and release checklist/procedures.
+- `docs/history.md`: historical verification and release incident records.
 
 ## Build and development
 
@@ -30,15 +35,21 @@ development libraries matching libwebsockets. See `CMakeLists.txt` for the actua
 minimum versions; do not arbitrarily raise distro library floors.
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-./build/ttyd --version
-./build/ttyd --help
-./build/ttyd -i 127.0.0.1 -W bash
+cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --parallel
+./build/native/ttyd --version
+./build/native/ttyd --help
+python3 scripts/check-options.py build/native/ttyd
+./build/native/ttyd -i 127.0.0.1 -W bash
 ```
 
 Use `CMAKE_PREFIX_PATH` for custom library installs. Verify with a browser at
 `http://127.0.0.1:7681/`; do not expose a test shell on all interfaces.
+
+Cross builds use `build/cross/<requested BUILD_TARGET>/ttyd` (`ttyd.exe` for
+win32), preserving aliases such as amd64. Never delete the shared `build/`
+directory or mix native and cross CMake caches. Dependency `BUILD_ROOT` is not
+the executable output directory. See `docs/building.md` for all build entry points.
 
 On Windows, static libuv needs its upstream system-library dependencies,
 including `synchronization` for `WaitOnAddress`/`WakeByAddressSingle`. Raw
@@ -84,15 +95,18 @@ not exercised.
 
 Run frontend checks/builds for frontend changes, and a native configure/build
 for C or generated-header changes. Validate shell scripts and workflow syntax
-when changing automation. Cross-target CI, Windows, containers and snap builds
-require their own environments; do not claim local Linux checks prove them.
+when changing automation. Cross-target CI, Windows and containers require their
+own environments; do not claim local Linux checks prove them.
 
 Automation is intentionally new-tag-only. `release.yml` validates the version,
 runs the reusable frontend workflow, then native builds and GHCR publishing;
 both must succeed before creating a draft release. Branch/PR pushes do not build
-or publish. Docker Hub is not used. Keep this trigger policy when editing CI.
+or publish. Keep this trigger policy when editing CI.
 
-Keep changes focused. Document compatibility changes, verification evidence and
-remaining risks in `MODERNIZATION.md`; never describe an untested release path
-as verified. Do not publish releases/images or alter credentials as part of
-local development without an explicit request.
+Keep changes focused. Update current compatibility/risks in `MODERNIZATION.md`,
+release procedures in `docs/releasing.md`, and historical verification evidence
+in `docs/history.md`; never describe an untested release path as verified. The
+manual is the authoritative detailed CLI reference; update native help and
+`man/ttyd.man.md` together, regenerate `man/ttyd.1`, and run the CLI consistency
+checker. Do not publish releases/images or alter credentials as part of local
+development without an explicit request.

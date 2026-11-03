@@ -10,6 +10,10 @@ STAGE_ROOT="${STAGE_ROOT:-/opt/stage}"
 BUILD_ROOT="${BUILD_ROOT:-/opt/build}"
 BUILD_TARGET="${BUILD_TARGET:-x86_64}"
 
+SOURCE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+# Preserve the requested alias even when toolchain selection normalizes it below.
+TTYD_BUILD_DIR="${SOURCE_DIR}/build/cross/${BUILD_TARGET}"
+
 ZLIB_VERSION="${ZLIB_VERSION:-1.3.2}"
 JSON_C_VERSION="${JSON_C_VERSION:-0.19}"
 # Use the supported 3.5 LTS branch rather than the end-of-life 3.6 series.
@@ -141,15 +145,15 @@ build_libwebsockets() {
 
 build_ttyd() {
     echo "=== Building ttyd (${TARGET})..."
-    rm -rf build && mkdir -p build && cd build
-    cmake -DCMAKE_TOOLCHAIN_FILE="${BUILD_DIR}/cross-${TARGET}.cmake" \
+    rm -rf "${TTYD_BUILD_DIR}"
+    cmake -S "${SOURCE_DIR}" -B "${TTYD_BUILD_DIR}" \
+        -DCMAKE_TOOLCHAIN_FILE="${BUILD_DIR}/cross-${TARGET}.cmake" \
         -DCMAKE_INSTALL_PREFIX="${STAGE_DIR}" \
         -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
         -DCMAKE_C_FLAGS="-Os -ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -flto" \
         -DCMAKE_EXE_LINKER_FLAGS="-static -no-pie -Wl,-s -Wl,-Bsymbolic -Wl,--gc-sections" \
-        -DCMAKE_BUILD_TYPE=RELEASE \
-        ..
-    make install
+        -DCMAKE_BUILD_TYPE=RELEASE
+    cmake --build "${TTYD_BUILD_DIR}" --target install
 }
 
 build() {

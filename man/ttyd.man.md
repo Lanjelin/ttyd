@@ -7,6 +7,10 @@ ttyd 1 "September 2016" ttyd "User Manual"
 # SYNOPSIS
   **ttyd** [options] \<command\> [\<arguments...\>]
 
+This manual is the authoritative detailed CLI and client-option reference for
+ttyd-ng, Lanjelin's fork of ttyd. The executable remains `ttyd`; use `ttyd --help`
+for the options available in a particular build.
+
 # DESCRIPTION
   ttyd is a command-line tool for sharing terminal over the web that runs in *nix and windows systems, with the following features:
 
@@ -20,6 +24,9 @@ ttyd 1 "September 2016" ttyd "User Manual"
   - Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE, Windows
 
 # OPTIONS
+  IPv6 and TLS options depend on libwebsockets build features; **--ping-interval**
+  requires libwebsockets 4 or newer. Such options may be absent from runtime help.
+
   -p, --port <port>
       Port to listen (default: 7681, use `0` for random port)
 
@@ -234,9 +241,9 @@ curl --insecure --cert client.p12[:password] -v https://localhost:7681
   If you don't want to enable client certificate verification, remove the `--ssl-ca` option.
 
 # Docker and ttyd
-  Docker containers are jailed environments which are more secure, this is useful for protecting the host system, you may use ttyd with docker like this:
+  Docker containers are jailed environments which are more secure, this is useful for protecting the host system, you may use ttyd with docker like this. Replace `<tag>` with an exact published version tag for ttyd-ng; there is no `latest` alias:
 
-  - Sharing single docker container with multiple clients: docker run -it --rm -p 7681:7681 tsl0922/ttyd.
+  - Sharing single docker container with multiple clients: `docker run -it --rm -p 7681:7681 ghcr.io/lanjelin/ttyd-ng:<tag>`.
   - Creating new docker container for each client: ttyd docker run -it --rm ubuntu.
 
 # Nginx reverse proxy
@@ -256,4 +263,6 @@ location ~ ^/ttyd(.*)$ {
 ```
 
 # AUTHOR
-  Shuanglei Tao \<tsl0922@gmail.com\> Visit https://github.com/tsl0922/ttyd to get more information and report bugs.
+  Original author: Shuanglei Tao \<tsl0922@gmail.com\>. Upstream: https://github.com/tsl0922/ttyd.
+
+  ttyd-ng fork maintained by Lanjelin. Project information: https://github.com/Lanjelin/ttyd-ng. Report fork bugs at https://github.com/Lanjelin/ttyd-ng/issues.
