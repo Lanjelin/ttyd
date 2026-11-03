@@ -14,9 +14,12 @@ replace validation of the commit being released.
   build and dependency advisory audit. Record unresolved advisories rather than
   suppressing them; see the baseline's recorded development-only advisory.
 - Rebuild the executable and check CLI/options consistency with
-  `python3 scripts/check-options.py build/native/ttyd`. Exercise the actual
-  bundled terminal: WebGL/DOM fallback, keyboard input, resizing, disconnect,
-  read-only behavior, and authentication/base paths when touched.
+  `python3 scripts/check-options.py build/native/ttyd`. Run the Linux
+  [browser/protocol regression suite](../tests/README.md) against the rebuilt
+  executable and embedded UI. The reusable native job runs it as a release gate;
+  investigate failures using its uploaded diagnostics rather than retrying them
+  away. This covers keyboard input, read-only enforcement, authentication/origin
+  boundaries, resize, base paths, lifecycle and unavailable-WebGL fallback.
 - Exercise clipboard, sixel and ZMODEM/trzsz transfers. Compilation alone does
   not verify these integrations. When font behavior changes, validate loading,
   authentication/base paths, fallback, reconnect and terminal measurements;

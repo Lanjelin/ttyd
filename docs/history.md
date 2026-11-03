@@ -341,3 +341,43 @@ prefer that over moving `1.8.0`, since its Ubuntu image is already public.
 - Ubuntu 24.04 packages: [json-c](https://packages.ubuntu.com/noble/libjson-c5),
   [libwebsockets](https://packages.ubuntu.com/noble/libwebsockets19t64),
   [libuv event plugin](https://packages.ubuntu.com/noble/libwebsockets-evlib-uv)
+
+## Linux end-to-end regression suite (2026-11-03)
+
+Added `tests/` with its own pinned Yarn 4.18.1 lockfile, Playwright 1.64.1,
+Chromium and `ws` 8.22.1. The suite runs the rebuilt native executable and its
+embedded frontend against a raw/noecho Python PTY fixture; no application mock
+or frontend development server is involved. The Linux native reusable workflow
+now runs the suite and retains failure diagnostics, without adding branch/PR
+triggers or changing publication policy.
+
+The first run exposed a native crash: after a valid WebSocket session, an empty
+binary message terminated ttyd with `SIGSEGV`. `LWS_CALLBACK_RECEIVE` allocated
+zero bytes through `xmalloc(0)` and dereferenced the resulting null buffer.
+The approved fix ignores empty messages when no data is buffered and avoids
+reallocation/copying for empty continuations while still dispatching buffered
+data on an empty final continuation. The same previously failing regression
+passed after rebuilding; authenticated fragmented handshakes and input also
+passed with empty first, intermediate and final fragments.
+
+The integrated run passed all 16 tests locally; the final repeatability run passed
+32/32 executions (`--repeat-each=2`), using two workers and no retries. The host
+was Linux x86-64, Node 26.13.0, Python 3.12 and the locally linked libwebsockets
+4.5.7, using the Playwright
+Chromium build. Native CMake configure/build, the immutable test-package install,
+CLI/manual consistency (30 built options, 31 documented), and actionlint 1.7.11
+workflow validation also passed. A separate real-browser smoke visibly rendered
+keyboard input and its `/usr/bin/cat` response on loopback.
+
+Two initial test-harness failures were corrected rather than changing server
+behavior: the disconnect test now observes actual child reaping instead of
+expecting Playwright socket events after page destruction; the immediate-exit
+test disables reconnect so it observes exactly one fixture session. On this
+libwebsockets build, child exit status zero was observed as browser close code
+1006. Output-before-close passed, but normal-close signaling and reconnect
+policy are not certified by that test.
+
+No Windows, macOS, other-browser, TLS/mTLS, clipboard, SIXEL, transfer,
+cross-target, container or hosted-release execution is claimed. See
+[the test guide](../tests/README.md) for commands, isolation and coverage limits.
+

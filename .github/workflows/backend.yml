@@ -11,7 +11,7 @@ jobs:
       - name: Install native dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libuv1-dev libjson-c-dev libwebsockets-dev libssl-dev zlib1g-dev
+          sudo apt-get install -y build-essential cmake libuv1-dev libjson-c-dev libwebsockets-dev libwebsockets-evlib-uv libssl-dev zlib1g-dev python3
       - name: Build and smoke native server
         run: |
           cmake -S "${GITHUB_WORKSPACE}" -B "${GITHUB_WORKSPACE}/build/native" -DCMAKE_BUILD_TYPE=Release
@@ -19,11 +19,24 @@ jobs:
           python3 scripts/check-options.py build/native/ttyd
           ./build/native/ttyd --version
           ./build/native/ttyd --help
-          ./build/native/ttyd -i 127.0.0.1 -p 7681 sh &
-          SERVER_PID=$!
-          trap 'kill "$SERVER_PID"; wait "$SERVER_PID" || true' EXIT
-          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:7681/ -o /tmp/ttyd-index.html
-          curl --fail http://127.0.0.1:7681/token
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install regression test dependencies
+        working-directory: tests
+        run: |
+          npx --yes @yarnpkg/cli-dist@4.18.1 install --immutable
+          npx --yes @yarnpkg/cli-dist@4.18.1 exec playwright install --with-deps chromium
+      - name: Run browser and protocol regression tests
+        working-directory: tests
+        run: npx --yes @yarnpkg/cli-dist@4.18.1 test
+      - name: Preserve regression failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-test-results
+          path: tests/test-results/
+          if-no-files-found: ignore
   msvc:
     runs-on: windows-latest
     env:

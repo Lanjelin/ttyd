@@ -72,6 +72,24 @@ The static triplet requires matching static CRT selection (`/MT` for Release,
 `/MTd` for Debug). MinGW cross builds below are a separate toolchain, not proof
 that MSVC compilation or Windows runtime behavior works.
 
+## End-to-end regression tests
+
+After rebuilding the native executable, run the Linux browser/protocol suite in
+[`tests/`](../tests/README.md). It uses the embedded UI, real WebSockets and a
+controlled PTY child rather than a mock server:
+
+```sh
+cd tests
+npx --yes @yarnpkg/cli-dist@4.18.1 install --immutable
+npx --yes @yarnpkg/cli-dist@4.18.1 exec playwright install chromium
+npx --yes @yarnpkg/cli-dist@4.18.1 test
+```
+
+Node >=24 and Python 3 are test prerequisites, not ttyd runtime dependencies.
+Browser system dependencies may also be needed; see the test guide for setup,
+selective runs, diagnostics, assertions and platform limits. Rebuild the frontend
+and then the executable first when testing browser-source changes.
+
 ## Browser client
 
 Use Node.js >=24 and the exact Yarn version in `html/package.json`

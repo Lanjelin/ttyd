@@ -191,5 +191,6 @@ Modern browsers are supported; see the
 
 ## Development
 
-See the [build guide](docs/building.md), [release procedures](docs/releasing.md),
-and [project history](docs/history.md) for contributor and maintainer information.
+See the [build guide](docs/building.md), [end-to-end tests](tests/README.md),
+[release procedures](docs/releasing.md), and [project history](docs/history.md)
+for contributor and maintainer information.

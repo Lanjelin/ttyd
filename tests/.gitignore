@@ -1,0 +1,5 @@
+node_modules/
+.yarn/
+test-results/
+playwright-report/
+__pycache__/

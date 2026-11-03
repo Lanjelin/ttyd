@@ -31,6 +31,7 @@ No distribution or Homebrew package recipes are maintained in this repository.
 | Packaging | Ubuntu 24.04 and Alpine 3.24 container images |
 | Automation | New-tag-only orchestration; frontend gates native/container jobs; both gate a draft GitHub release; exact-version GHCR images only |
 | Documentation | Manual is the detailed CLI reference; native CI checks option names/aliases against runtime help and generated man page; building, releasing and historical evidence have separate guides |
+| Regression coverage | Linux Playwright browser and direct HTTP/WebSocket tests against the rebuilt executable, embedded UI and controlled PTY child; native release job gates on the suite |
 
 Native builds are recommended in `build/native` (`build/native/Release/ttyd.exe`
 for MSVC). Cross executables use `build/cross/<requested BUILD_TARGET>/ttyd`
@@ -100,5 +101,11 @@ the new native or requested-target path. Release asset names remain unchanged.
 - The 1.8.0 hosted run had Windows, ppc64le and Alpine publication failures.
   Local fixes and limited verification are recorded in history, not proof that
   a later hosted run succeeded. GHCR package access requires explicit attention.
-- Keep future features separate from dependency maintenance and add behavior-level
-  regression coverage for protocol, lifecycle, authentication and transfer changes.
+- Linux terminal/protocol regression commands and coverage are documented in
+  [the test guide](tests/README.md). They do not certify TLS/mTLS, clipboard,
+  SIXEL, transfers, Windows or macOS. Extend behavior-level coverage alongside
+  reproduced bugs and changes in those integrations.
+  In the locally exercised libwebsockets 4.5.7 build, child exit status zero
+  reached the browser as WebSocket close code 1006. Final-output delivery is
+  tested with automatic reconnect disabled; normal-close signaling and reconnect
+  policy still need dedicated investigation.
