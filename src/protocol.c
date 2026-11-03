@@ -285,11 +285,13 @@ int callback_tty(struct lws *wsi, enum lws_callback_reasons reason, void *user, 
       break;
 
     case LWS_CALLBACK_RECEIVE:
+      // Ignore empty messages, but let an empty final continuation finish buffered data.
+      if (len == 0 && pss->buffer == NULL) return 0;
       if (pss->buffer == NULL) {
         pss->buffer = xmalloc(len);
         pss->len = len;
         memcpy(pss->buffer, in, len);
-      } else {
+      } else if (len > 0) {
         pss->buffer = xrealloc(pss->buffer, pss->len + len);
         memcpy(pss->buffer + pss->len, in, len);
         pss->len += len;

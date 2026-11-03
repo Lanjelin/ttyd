@@ -48,6 +48,9 @@ the new native or requested-target path. Release asset names remain unchanged.
   executable has no Node runtime dependency. System library minimums are not
   raised just to match bundled cross-build pins. Distribution-maintained native
   libraries remain usable; libwebsockets must include libuv support.
+- Empty WebSocket messages no longer dereference a null receive buffer.
+  Empty continuation frames preserve accumulated data and a final continuation
+  still completes the message; authenticated fragmentation is regression-tested.
 - Replace `-t rendererType=canvas` with `-t rendererType=dom`, or omit it for
   WebGL with DOM fallback. Canvas is not a supported alias. Renderer/container
   changes and font metrics trigger refitting; terminal edges use the theme
