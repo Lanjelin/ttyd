@@ -1,3 +1,4 @@
+#include <json.h>
 #include <libwebsockets.h>
 #include <string.h>
 #include <zlib.h>
@@ -93,7 +94,6 @@ static void access_log(struct lws *wsi, const char *path) {
 int callback_http(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
   struct pss_http *pss = (struct pss_http *)user;
   unsigned char buffer[4096 + LWS_PRE], *p, *end;
-  char buf[256];
   bool done = false;
 
   switch (reason) {
@@ -115,18 +115,30 @@ int callback_http(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
       if (strcmp(pss->path, endpoints.token) == 0) {
         const char *credential = server->credential != NULL ? server->credential : "";
-        size_t n = snprintf(buf, sizeof(buf), "{\"token\": \"%s\"}", credential);
+        struct json_object *token = json_object_new_object();
+        json_object_object_add(token, "token", json_object_new_string(credential));
+        if (server->font_url != NULL)
+          json_object_object_add(token, "font", json_object_new_string(server->font_url));
+        const char *body = json_object_to_json_string(token);
+        pss->buffer = pss->ptr = strdup(body);
+        pss->len = strlen(body);
+        json_object_put(token);
         if (lws_add_http_header_status(wsi, HTTP_STATUS_OK, &p, end) ||
             lws_add_http_header_by_token(wsi, WSI_TOKEN_HTTP_CONTENT_TYPE,
                                          (unsigned char *)"application/json;charset=utf-8", 30, &p, end) ||
-            lws_add_http_header_content_length(wsi, (unsigned long)n, &p, end) ||
+            lws_add_http_header_content_length(wsi, (unsigned long)pss->len, &p, end) ||
             lws_finalize_http_header(wsi, &p, end) ||
-            lws_write(wsi, buffer + LWS_PRE, p - (buffer + LWS_PRE), LWS_WRITE_HTTP_HEADERS) < 0)
+            lws_write(wsi, buffer + LWS_PRE, p - (buffer + LWS_PRE), LWS_WRITE_HTTP_HEADERS) < 0) {
+          pss_buffer_free(pss);
           return 1;
-
-        pss->buffer = pss->ptr = strdup(buf);
-        pss->len = n;
+        }
         lws_callback_on_writable(wsi);
+        break;
+      }
+
+      if (server->font_path != NULL && strcmp((const char *)in, server->font_url) == 0) {
+        int n = lws_serve_http_file(wsi, server->font_path, server->font_type, NULL, 0);
+        if (n < 0 || (n > 0 && lws_http_transaction_completed(wsi))) return 1;
         break;
       }
 

@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
 
 #include "utils.h"
 #include "compat.h"
@@ -52,6 +55,7 @@ static lws_retry_bo_t retry = {
 #endif
 
 // command line options
+enum { OPT_FONT = 256 };
 static const struct option options[] = {{"port", required_argument, NULL, 'p'},
                                         {"interface", required_argument, NULL, 'i'},
                                         {"socket-owner", required_argument, NULL, 'U'},
@@ -62,6 +66,7 @@ static const struct option options[] = {{"port", required_argument, NULL, 'p'},
                                         {"signal", required_argument, NULL, 's'},
                                         {"cwd", required_argument, NULL, 'w'},
                                         {"index", required_argument, NULL, 'I'},
+                                        {"font", required_argument, NULL, OPT_FONT},
                                         {"base-path", required_argument, NULL, 'b'},
 #if LWS_LIBRARY_VERSION_NUMBER >= 4000000
                                         {"ping-interval", required_argument, NULL, 'P'},
@@ -114,6 +119,7 @@ static void print_help() {
           "    -q, --exit-no-conn      Exit on all clients disconnection\n"
           "    -B, --browser           Open terminal with the default system browser\n"
           "    -I, --index             Custom index.html path\n"
+          "        --font              Local font file (woff2, woff, ttf, otf) or HTTP(S) font URL\n"
           "    -b, --base-path         Expected base path for requests coming from a reverse proxy (eg: /mounted/here, max length: 128)\n"
 #if LWS_LIBRARY_VERSION_NUMBER >= 4000000
           "    -P, --ping-interval     Websocket ping interval(sec) (default: 5)\n"
@@ -210,6 +216,8 @@ static void server_free(struct server *ts) {
   if (ts->auth_header != NULL) free(ts->auth_header);
   if (ts->index != NULL) free(ts->index);
   if (ts->cwd != NULL) free(ts->cwd);
+  free(ts->font_path);
+  free(ts->font_url);
   free(ts->command);
   free(ts->prefs_json);
 
@@ -425,6 +433,49 @@ int main(int argc, char **argv) {
       case 'w':
         server->cwd = strdup(optarg);
         break;
+      case OPT_FONT: {
+        free(server->font_path);
+        free(server->font_url);
+        server->font_path = NULL;
+        server->font_url = NULL;
+        server->font_type = NULL;
+        if (!strncasecmp(optarg, "http://", 7) || !strncasecmp(optarg, "https://", 8)) {
+          server->font_url = strdup(optarg);
+          break;
+        }
+        const char *ext = strrchr(optarg, '.');
+        if (ext != NULL) {
+          if (!strcasecmp(ext, ".woff2")) {
+            server->font_type = "font/woff2";
+          } else if (!strcasecmp(ext, ".woff")) {
+            server->font_type = "font/woff";
+          } else if (!strcasecmp(ext, ".ttf")) {
+            server->font_type = "font/ttf";
+          } else if (!strcasecmp(ext, ".otf")) {
+            server->font_type = "font/otf";
+          }
+        }
+        if (server->font_type == NULL) {
+          fprintf(stderr, "ttyd: unsupported local font format: %s (expected woff2, woff, ttf or otf)\n", optarg);
+          return -1;
+        }
+        struct stat font_stat;
+        if (stat(optarg, &font_stat) != 0) {
+          fprintf(stderr, "ttyd: can not stat font: %s, error: %s\n", optarg, strerror(errno));
+          return -1;
+        }
+        if (!S_ISREG(font_stat.st_mode)) {
+          fprintf(stderr, "ttyd: font must be a regular file: %s\n", optarg);
+          return -1;
+        }
+        FILE *font = fopen(optarg, "rb");
+        if (font == NULL) {
+          fprintf(stderr, "ttyd: can not read font: %s, error: %s\n", optarg, strerror(errno));
+          return -1;
+        }
+        fclose(font);
+        server->font_path = strdup(optarg);
+      } break;
       case 'I':
         if (!strncmp(optarg, "~/", 2)) {
           const char *home = getenv("HOME");
@@ -523,6 +574,11 @@ int main(int argc, char **argv) {
         print_help();
         return -1;
     }
+  }
+  if (server->font_path != NULL) {
+    size_t font_url_len = strlen(endpoints.parent) + sizeof("/font");
+    server->font_url = xmalloc(font_url_len);
+    snprintf(server->font_url, font_url_len, "%s/font", endpoints.parent);
   }
   server->prefs_json = strdup(json_object_to_json_string(client_prefs));
   json_object_put(client_prefs);

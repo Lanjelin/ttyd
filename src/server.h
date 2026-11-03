@@ -67,6 +67,9 @@ struct server {
   char *credential;        // encoded basic auth credential
   char *auth_header;       // header name used for auth proxy
   char *index;             // custom index.html
+  char *font_path;         // configured local font file, or NULL for remote fonts
+  char *font_url;          // browser-facing configured font URL
+  const char *font_type;   // local font content type
   char *command;           // full command line
   char **argv;             // command with arguments
   int argc;                // command + arguments count

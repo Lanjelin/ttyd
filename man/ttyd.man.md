@@ -76,6 +76,9 @@ ttyd 1 "September 2016" ttyd "User Manual"
 
   -I, --index <index file>
       Custom index.html path
+
+  --font <file or URL>
+      Load one regular terminal font from a local woff2, woff, ttf or otf file, or an HTTP(S) font-file URL
   
   -b, --base-path
       Expected base path for requests coming from a reverse proxy (eg: /mounted/here, max length: 128)
@@ -145,6 +148,44 @@ to try the example options above, run:
 ```bash
 ttyd -t cursorStyle=bar -t lineHeight=1.5 -t 'theme={"background": "green"}' bash
 ```
+
+# CUSTOM FONT
+
+Serve a readable regular font file outside the executable:
+
+```sh
+ttyd -i 127.0.0.1 --font /srv/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+```
+
+Only the configured file is exposed at `/font` (or `<base-path>/font`), protected
+by the same HTTP authentication as the page. Its containing directory is not
+served. Local WOFF2, WOFF, TrueType and OpenType files are supported; WOFF2 is
+recommended for compression.
+
+To fetch a font directly from each browser instead:
+
+```sh
+ttyd -i 127.0.0.1 --font https://example.com/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+```
+
+The URL must point to a font file, not a stylesheet. ttyd does not download or
+proxy it. Cross-origin hosts must permit font requests through CORS. Any deployed
+Content Security Policy must permit the font source. An HTTPS page needs an
+HTTPS font URL to avoid mixed-content blocking. Each browser must be able to
+reach the font host.
+
+The bundled browser client loads and registers the font before opening the
+terminal and selects an internal family alias automatically. A successfully
+loaded font overrides both the `fontFamily` client option and URL preference.
+Loading failures produce a browser console warning and retain normal font-family
+fallback. Without **--font**, `fontFamily` selects an already available browser
+font; it does not fetch font bytes. Custom **--index** pages must implement font
+loading themselves.
+
+The `fontSize`, `fontWeight` and `fontWeightBold` client options remain independent.
+One regular file does not configure separate bold/italic faces; browser synthesis
+or fallback may be used. **--font** does not enable keyboard input; use **-W** for
+a writable terminal.
 
 # EXAMPLES
   ttyd starts web server at port 7681 by default, you can use the -p option to change it, the command will be started with arguments as options. For example, run:

@@ -215,6 +215,39 @@ Rerunning the old tag's jobs uses its original commit, not these local fixes.
 Commit fixes and select a new matching patch version/tag for the next attempt;
 prefer that over moving `1.8.0`, since its Ubuntu image is already public.
 
+## External terminal font loading
+
+- Added long-only `--font` for one readable regular local `.woff2`, `.woff`,
+  `.ttf`, or `.otf` file, or an HTTP(S) font-file URL. No font bytes are embedded
+  in the executable and no new runtime dependency is required.
+- Local fonts use an exact authenticated `/font` route under the configured
+  base path; no directory is exposed. Token JSON carries the browser-facing
+  font URL. Remote fonts are fetched directly by the browser, never by ttyd.
+- The bundled client awaits font loading/registration before opening xterm,
+  automatically selects an internal alias, and preserves it across reconnects.
+  Failed loads warn in the browser console and retain font-family fallback.
+  A loaded `--font` overrides `fontFamily` preferences; size/weight controls
+  remain independent. Custom index pages must implement loading separately.
+- Remote deployments still depend on client connectivity, CDN availability,
+  CORS, HTTPS/mixed-content rules, and deployed CSP. Only one regular face is
+  configured; separate bold/italic face mapping is not implemented.
+- Verification: pinned Yarn 4.18.1 immutable install, TypeScript/ESLint check,
+  production frontend generation, and native Release configure/build passed.
+  Actual bundled Chromium sessions loaded an external TTF before terminal
+  creation, exercised authenticated base-path serving, automatic font selection
+  over `fontFamily=serif`, font-size preferences, writable input/output, PTY
+  resize, reconnect without duplicate font registration/download, and WebGL
+  context-loss fallback to a correctly sized DOM terminal. A cross-origin TTF
+  loaded directly from a local HTTP font host; read-only input remained blocked.
+  A host without CORS produced a visible console warning and a usable DOM
+  fallback terminal. HTTP smoke checks covered exact file bytes/content type,
+  missing authentication, unknown paths, invalid local inputs, both font/base-path
+  option orders, escaped remote URL metadata, and unconfigured token responses.
+- Limits: actual font decoding was exercised with TTF, not every supported font
+  format. Public CDNs, remote HTTPS/CSP deployments, Windows/cross-target builds,
+  containers, and snap were not verified for this feature. Transfers and sixel
+  integrations were unchanged and were not exercised.
+
 ## Sources
 
 - [Node release lifecycle](https://nodejs.org/en/about/previous-releases)

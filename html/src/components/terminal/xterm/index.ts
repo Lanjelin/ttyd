@@ -75,6 +75,8 @@ function addEventListener(target: EventTarget, type: string, listener: EventList
 }
 
 export class Xterm {
+    private static nextFontId = 0;
+
     private disposables: IDisposable[] = [];
     private textEncoder = new TextEncoder();
     private textDecoder = new TextDecoder();
@@ -92,6 +94,11 @@ export class Xterm {
     private socket?: WebSocket;
     private token: string;
     private opened = false;
+    private disposed = false;
+    private tokenRequest = 0;
+    private font?: FontFace;
+    private fontUrl?: string;
+    private fallbackFontFamily?: string;
     private title?: string;
     private titleFixed?: string;
     private resizeOverlay = true;
@@ -107,6 +114,16 @@ export class Xterm {
     ) {}
 
     dispose() {
+        this.disposed = true;
+        this.disposeListeners();
+        if (this.font) {
+            document.fonts.delete(this.font);
+            this.font = undefined;
+        }
+        this.fontUrl = undefined;
+    }
+
+    private disposeListeners() {
         for (const d of this.disposables) {
             d.dispose();
         }
@@ -123,16 +140,48 @@ export class Xterm {
     }
 
     public refreshToken = async () => {
+        if (this.disposed) return;
+        const request = ++this.tokenRequest;
         try {
             const resp = await fetch(this.options.tokenUrl);
             if (resp.ok) {
                 const json = await resp.json();
+                if (this.disposed || request !== this.tokenRequest) return;
                 this.token = json.token;
+                await this.loadFont(typeof json.font === 'string' && json.font !== '' ? json.font : undefined, request);
             }
         } catch (e) {
-            console.error(`[ttyd] fetch ${this.options.tokenUrl}: `, e);
+            if (!this.disposed && request === this.tokenRequest) {
+                console.error(`[ttyd] fetch ${this.options.tokenUrl}: `, e);
+            }
         }
     };
+
+    private async loadFont(url: string | undefined, request: number) {
+        if (url === this.fontUrl) return;
+
+        let font: FontFace | undefined;
+        if (url) {
+            try {
+                const face = new FontFace(`ttyd-custom-font-${++Xterm.nextFontId}`, `url(${JSON.stringify(url)})`);
+                await face.load();
+                if (this.disposed || request !== this.tokenRequest) return;
+                document.fonts.add(face);
+                font = face;
+            } catch (e) {
+                if (this.disposed || request !== this.tokenRequest) return;
+                console.warn(`[ttyd] failed to load font ${url}; using fallback font`, e);
+            }
+        }
+
+        if (this.font) document.fonts.delete(this.font);
+        this.font = font;
+        this.fontUrl = font ? url : undefined;
+        if (this.terminal) {
+            this.terminal.options.fontFamily = font?.family ?? this.fallbackFontFamily;
+            this.fitAddon.fit();
+        }
+    }
 
     private onWindowUnload = (event: BeforeUnloadEvent) => {
         event.preventDefault();
@@ -145,7 +194,10 @@ export class Xterm {
     };
 
     public open(parent: HTMLElement) {
+        if (this.disposed) return;
         this.terminal = new Terminal(this.options.termOptions);
+        this.fallbackFontFamily = this.terminal.options.fontFamily;
+        if (this.font) this.terminal.options.fontFamily = this.font.family;
         const { terminal, fitAddon, overlayAddon, clipboardAddon, webLinksAddon } = this;
         window.term = terminal as TtydTerminal;
         window.term.fit = () => {
@@ -281,6 +333,7 @@ export class Xterm {
     };
 
     public connect = () => {
+        if (this.disposed) return;
         this.socket = new WebSocket(this.options.wsUrl, ['tty']);
         const { socket, register } = this;
 
@@ -316,7 +369,7 @@ export class Xterm {
 
         const { refreshToken, connect, doReconnect, overlayAddon } = this;
         overlayAddon.showOverlay('Connection Closed');
-        this.dispose();
+        this.disposeListeners();
 
         // 1000: CLOSE_NORMAL
         if (event.code !== 1000 && doReconnect) {
@@ -326,14 +379,14 @@ export class Xterm {
             window.close();
         } else {
             const { terminal } = this;
-            const keyDispose = terminal.onKey(e => {
+            const keyDispose = this.register(terminal.onKey(e => {
                 const event = e.domEvent;
                 if (event.key === 'Enter') {
                     keyDispose.dispose();
                     overlayAddon.showOverlay('Reconnecting...');
                     refreshToken().then(connect);
                 }
-            });
+            }));
             overlayAddon.showOverlay('Press ⏎ to Reconnect');
         }
     };
@@ -416,6 +469,10 @@ export class Xterm {
 
         for (const [key, value] of Object.entries(prefs)) {
             switch (key) {
+                case 'fontFamily':
+                    this.fallbackFontFamily = value;
+                    if (!this.font) terminal.options.fontFamily = value;
+                    break;
                 case 'rendererType':
                     this.setRendererType(value);
                     break;

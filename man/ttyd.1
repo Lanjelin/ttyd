@@ -106,6 +106,10 @@ Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE, Windows
       Custom index.html path
 
 .PP
+--font 
+      Load one regular terminal font from a local woff2, woff, ttf or otf file, or an HTTP(S) font-file URL
+
+.PP
 -b, --base-path
       Expected base path for requests coming from a reverse proxy (eg: /mounted/here, max length: 128)
 
@@ -204,6 +208,49 @@ to try the example options above, run:
 .EX
 ttyd -t cursorStyle=bar -t lineHeight=1.5 -t 'theme={"background": "green"}' bash
 .EE
+
+
+.SH CUSTOM FONT
+Serve a readable regular font file outside the executable:
+
+.EX
+ttyd -i 127.0.0.1 --font /srv/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+.EE
+
+.PP
+Only the configured file is exposed at \fB/font\fR (or \fB<base-path>/font\fR), protected
+by the same HTTP authentication as the page. Its containing directory is not
+served. Local WOFF2, WOFF, TrueType and OpenType files are supported; WOFF2 is
+recommended for compression.
+
+.PP
+To fetch a font directly from each browser instead:
+
+.EX
+ttyd -i 127.0.0.1 --font https://example.com/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+.EE
+
+.PP
+The URL must point to a font file, not a stylesheet. ttyd does not download or
+proxy it. Cross-origin hosts must permit font requests through CORS. Any deployed
+Content Security Policy must permit the font source. An HTTPS page needs an
+HTTPS font URL to avoid mixed-content blocking. Each browser must be able to
+reach the font host.
+
+.PP
+The bundled browser client loads and registers the font before opening the
+terminal and selects an internal family alias automatically. A successfully
+loaded font overrides both the \fBfontFamily\fR client option and URL preference.
+Loading failures produce a browser console warning and retain normal font-family
+fallback. Without \fB--font\fP, \fBfontFamily\fR selects an already available browser
+font; it does not fetch font bytes. Custom \fB--index\fP pages must implement font
+loading themselves.
+
+.PP
+The \fBfontSize\fR, \fBfontWeight\fR and \fBfontWeightBold\fR client options remain independent.
+One regular file does not configure separate bold/italic faces; browser synthesis
+or fallback may be used. \fB--font\fP does not enable keyboard input; use \fB-W\fP for
+a writable terminal.
 
 
 .SH EXAMPLES

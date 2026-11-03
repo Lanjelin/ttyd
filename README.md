@@ -130,6 +130,7 @@ OPTIONS:
     -q, --exit-no-conn      Exit on all clients disconnection
     -B, --browser           Open terminal with the default system browser
     -I, --index             Custom index.html path
+        --font              Local font file (woff2, woff, ttf, otf) or HTTP(S) font URL
     -b, --base-path         Expected base path for requests coming from a reverse proxy (eg: /mounted/here, max length: 128)
     -P, --ping-interval     Websocket ping interval(sec) (default: 5)
     -6, --ipv6              Enable IPv6 support
@@ -143,6 +144,44 @@ OPTIONS:
 ```
 
 Read the example usage on the [wiki](https://github.com/tsl0922/ttyd/wiki/Example-Usage).
+
+## Custom terminal font
+
+Serve one regular font file without embedding it in the executable:
+
+```sh
+ttyd -i 127.0.0.1 --font /srv/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+```
+
+Local `.woff2`, `.woff`, `.ttf`, and `.otf` files must be readable regular files.
+Only the configured file is served at `/font` (or `<base-path>/font`), using the
+same HTTP authentication as the terminal page; its directory is not exposed.
+WOFF2 is recommended for smaller downloads.
+
+Alternatively, have each browser fetch a font file directly:
+
+```sh
+ttyd -i 127.0.0.1 --font https://example.com/fonts/JetBrainsMonoNerdFont-Regular.woff2 bash
+```
+
+Use a direct font-file URL, not a CDN stylesheet. ttyd does not download or proxy
+remote fonts. The font host must allow cross-origin font requests through CORS,
+and any deployed Content Security Policy must permit the font source. Use HTTPS
+for an HTTPS terminal page to avoid mixed-content blocking. Every browser needs
+connectivity to the font host; server connectivity alone is insufficient.
+
+The browser loads and registers the font before opening the terminal, selecting
+an internal family alias automatically. No family-name flag is needed. A loaded
+`--font` takes precedence over `-t fontFamily=...` and the `fontFamily` URL
+preference; if loading fails, a browser console warning is logged and normal
+font-family preferences provide the fallback. Without `--font`, `fontFamily`
+only selects an already available browser font; it does not fetch font bytes.
+
+`-t fontSize=18`, `-t fontWeight=normal`, and `-t fontWeightBold=bold` remain
+independent controls. One regular file does not configure separate bold/italic
+faces; browser synthesis or fallback may be used. The bundled client implements
+font loading; a custom `--index` page must implement it separately. Add `-W` if
+keyboard input is required; read-only remains the default.
 
 ## Browser Support
 
