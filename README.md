@@ -17,7 +17,10 @@ these features.
 - [Build guide](docs/building.md)
 - [Current compatibility and known risks](MODERNIZATION.md)
 
-![screenshot](https://github.com/tsl0922/ttyd/raw/main/screenshot.gif)
+https://github.com/user-attachments/assets/6b96cacc-2b19-4f0a-aad0-0688fcd81743
+
+23-second demo: Nerd Font file icons, SIXEL graphics, truecolor output, and live
+terminal resizing.
 
 # Features
 
