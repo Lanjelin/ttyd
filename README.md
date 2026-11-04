@@ -153,9 +153,18 @@ exposing a deployment.
 
 Use `ttyd --help` for options available in your build. The
 [manual](man/ttyd.man.md) is the authoritative detailed CLI and client-option
-reference; the installed equivalent is `man ttyd`. Upstream
-[usage examples](https://github.com/tsl0922/ttyd/wiki/Example-Usage) may not cover
-this fork's additions.
+reference; the installed equivalent is `man ttyd`.
+
+## Optional client settings
+
+- **Rendering:** If you see distorted text, borders, or colors, try
+  `-t rendererType=dom` instead of the default WebGL renderer.
+- **File transfers:** Enable with `-t enableTrzsz=true`; install `trzsz` where the
+  shell runs, then use `trz` to upload or `tsz file` to download.
+- **SIXEL graphics:** Enable with `-t enableSixel=true`; requires an application
+  that outputs SIXEL. Multiplexers may require additional configuration.
+
+See the [manual](man/ttyd.man.md#client-options) for more client options.
 
 ## Custom terminal font
 
