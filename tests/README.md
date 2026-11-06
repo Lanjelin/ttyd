@@ -41,6 +41,14 @@ npx --yes @yarnpkg/cli-dist@4.18.1 test:e2e
 npx --yes @yarnpkg/cli-dist@4.18.1 test --grep 'resize'
 ```
 
+Large-input regressions (protocol payloads from 2047 bytes to 1 MiB, and a
+32 KiB browser clipboard paste) need WebSocket compression to be meaningful.
+Builds that do not register it skip the protocol cases and still run the
+rest. The `test:compression` script (same as setting `TTYD_REQUIRE_COMPRESSION=1`)
+requires compression: the run fails unless `permessage-deflate` is negotiated
+and every payload arrives intact. Use it with a binary built with
+`-DTTYD_LWS_PMD_TRUSTED=ON`, for example when evaluating a libwebsockets upgrade.
+
 ## Assertions and isolation
 
 - Browser tests use real keyboard events and xterm's public buffer API, not

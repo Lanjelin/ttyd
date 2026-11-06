@@ -32,6 +32,11 @@ replace validation of the commit being released.
 - Validate workflow syntax and image tags. Confirm repository/package permissions
   and explicit release intent before pushing a tag: the workflow publishes
   container images before the draft GitHub release is ready.
+- When changing the libwebsockets version (or testing whether upstream fixed
+  `permessage-deflate`), build ttyd against it with `-DTTYD_LWS_PMD_TRUSTED=ON`
+  and run the `test:compression` script from `tests/`. Only if every case passes
+  may the default in `CMakeLists.txt` and the notes in `MODERNIZATION.md` be
+  revisited.
 
 ## Trigger and publication contract
 

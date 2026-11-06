@@ -121,6 +121,18 @@ async function resizeBarrier(server, session, cols, rows) {
     expect(await resized(), 'child acknowledges the requested PTY size').toBe(true);
 }
 
+async function waitForSession(server, session, condition, message) {
+    await expect.poll(async () => server.process.exitCode !== null || server.process.signalCode !== null
+        || session.close !== null || session.errors.length > 0 || await condition(), {
+        message, timeout: 5000, intervals: [25, 50, 100],
+    }).toBe(true);
+    expect({ code: server.process.exitCode, signal: server.process.signalCode }, server.logs())
+        .toEqual({ code: null, signal: null });
+    expect(session.close, `${message}: WebSocket remains open`).toBeNull();
+    expect(session.errors, `${message}: no WebSocket errors`).toEqual([]);
+    expect(await condition(), message).toBe(true);
+}
+
 async function rejectsUpgrade(session) {
     await expect.poll(() => session.close !== null || session.rejection !== null).toBe(true);
     expect(session.opened).toBe(false);
@@ -240,6 +252,66 @@ test('fragmented handshake and input are reassembled exactly once', async ({ har
     expect(inputData(await events(server))).toBe('echo fragmented-exactly\n');
     expect(session.output.split('ECHO:fragmented-exactly').length - 1).toBe(1);
 });
+
+for (const pattern of ['repeated', 'varied']) {
+    test(`compressed ${pattern} input survives receive-buffer boundaries with exact PTY bytes`, async ({ harness }) => {
+        const server = await harness.start({ args: ['-W'] });
+        const session = harness.connect(server, { perMessageDeflate: { threshold: 0 } });
+        await session.waitOpen();
+        const compressed = session.socket.extensions.split(',').includes('permessage-deflate');
+        if (process.env.TTYD_REQUIRE_COMPRESSION === '1') {
+            expect(compressed, 'TTYD_REQUIRE_COMPRESSION=1 requires negotiated permessage-deflate').toBe(true);
+        }
+        test.skip(!compressed, 'This ttyd build does not negotiate permessage-deflate');
+        await session.handshake();
+        await waitForSession(server, session, () => session.output.includes('READY\r\n'), 'PTY fixture is ready');
+
+        let expected = '';
+        // Sizes include ttyd's one-byte INPUT command, not just the PTY data.
+        const sizes = [2047, 2048, 2049, 32767, 32768, 32769, 65535, 65536, 65537, 1024 * 1024];
+        for (const size of sizes) {
+            await test.step(`${size}-byte compressed WebSocket payload`, async () => {
+                const input = Buffer.alloc(size - 1, 0x61);
+                if (pattern === 'varied') {
+                    let state = 0x12345678;
+                    for (let index = 0; index < input.length; index++) {
+                        state ^= state << 13;
+                        state ^= state >>> 17;
+                        state ^= state << 5;
+                        input[index] = 33 + ((state >>> 0) % 94);
+                    }
+                }
+                // The fixture buffers commands until LF. Never echo the large
+                // line, and keep varied bytes printable so there are no CR/LFs.
+                input[0] = 0x78;
+                input[input.length - 1] = 0x0a;
+                expected += input.toString('latin1');
+                await session.input(input);
+                await waitForSession(server, session, async () => inputData(await events(server)).length >= expected.length,
+                    'PTY receives the complete large input');
+                expect(inputData(await events(server)) === expected, 'PTY receives every input byte exactly once and in order').toBe(true);
+
+                const marker = `after-${pattern}-${size}`;
+                const command = `echo ${marker}\n`;
+                expected += command;
+                await session.input(command);
+                await waitForSession(server, session, () => session.output.includes(`ECHO:${marker}\r\n`),
+                    'The same session executes a subsequent command');
+                expect(inputData(await events(server)) === expected, 'Subsequent input has no trailing or duplicated bytes').toBe(true);
+            });
+        }
+        await resizeBarrier(server, session, 103, 41);
+        const recovered = harness.connect(server, { perMessageDeflate: { threshold: 0 } });
+        await recovered.waitOpen();
+        expect(recovered.socket.extensions).toContain('permessage-deflate');
+        await recovered.handshake();
+        await waitForSession(server, recovered, () => recovered.output.includes('READY\r\n'), 'A fresh compressed session is ready');
+        await recovered.input('echo recovered\n');
+        await waitForSession(server, recovered, () => recovered.output.includes('ECHO:recovered\r\n'),
+            'A fresh session remains functional after large compressed input');
+        expect(inputData(await events(server)) === `${expected}echo recovered\n`, 'Fresh session input is also received exactly').toBe(true);
+    });
+}
 
 test('empty binary messages preserve the active session and subsequent service', async ({ harness }) => {
     const server = await harness.start({ args: ['-W'] });

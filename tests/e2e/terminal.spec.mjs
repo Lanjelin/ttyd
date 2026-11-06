@@ -147,6 +147,74 @@ test('embedded terminal sends real keyboard input to its PTY and renders the res
     });
 });
 
+test('browser clipboard paste delivers a large input without reconnecting', async ({ page }, testInfo) => {
+    // Playwright's WebSocket exposes frames but not negotiated extensions.
+    // Observe native sockets without changing how the terminal constructs them.
+    await page.addInitScript(() => {
+        window.__pasteWebSockets = [];
+        window.WebSocket = new Proxy(window.WebSocket, {
+            construct(target, args, newTarget) {
+                const socket = Reflect.construct(target, args, newTarget);
+                const trace = { url: socket.url, extensions: null, closed: false };
+                window.__pasteWebSockets.push(trace);
+                socket.addEventListener('open', () => { trace.extensions = socket.extensions; });
+                socket.addEventListener('close', () => { trace.closed = true; });
+                return socket;
+            },
+        });
+    });
+    await withTerminal(page, testInfo, { args: ['-W'] }, async (server, { sockets }) => {
+        await openTerminal(page, server);
+        const socket = socketFor(sockets, server);
+        // Repeated bytes compress to almost nothing and do not exercise a multi-chunk inflate;
+        // deterministic pseudo-random base64 does.
+        let state = 0x2545f491;
+        const body = Buffer.from(Array.from({ length: 24 * 1024 }, () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state >>> 24;
+        })).toString('base64');
+        const value = `paste-start-${body}-paste-end`;
+        const command = `echo ${value}`;
+        await page.locator('.xterm-helper-textarea').focus();
+        await page.locator('.xterm-helper-textarea').evaluate((textarea, text) => {
+            const clipboardData = new DataTransfer();
+            clipboardData.setData('text/plain', text);
+            textarea.dispatchEvent(new ClipboardEvent('paste', {
+                clipboardData,
+                bubbles: true,
+                cancelable: true,
+            }));
+        }, `${command}\n`);
+        await expect.poll(async () => inputData(await fixtureEvents(server)), pollOptions).toBe(`${command}\r`);
+        // The long echo wraps visually; remove row separators to compare every
+        // response character, rather than merely finding a short end marker.
+        await expect.poll(async () => (await terminalText(page)).replaceAll('\n', ''), pollOptions)
+            .toBe(`READYECHO:${value}`);
+
+        await sendCommand(page, 'echo after-paste');
+        await expect.poll(async () => inputData(await fixtureEvents(server)), pollOptions)
+            .toBe(`${command}\recho after-paste\r`);
+        await expect.poll(async () => (await terminalText(page)).replaceAll('\n', ''), pollOptions)
+            .toBe(`READYECHO:${value}ECHO:after-paste`);
+        expect((await fixtureEvents(server)).filter(event => event.type === 'ready')).toHaveLength(1);
+        expect((await fixtureEvents(server)).filter(event => event.type === 'exit')).toEqual([]);
+        expect(sockets.map(candidate => candidate.url)).toEqual([server.wsUrl]);
+        expect(socket.closed).toBe(false);
+        expect(socket.events.filter(event => event.type === 'error')).toEqual([]);
+        expect(page.isClosed()).toBe(false);
+        expect(page.url()).toBe(server.url);
+
+        const nativeSockets = await page.evaluate(() => window.__pasteWebSockets);
+        expect(nativeSockets).toHaveLength(1);
+        expect(nativeSockets[0]).toMatchObject({ url: server.wsUrl, closed: false });
+        expect(nativeSockets[0].extensions).not.toBeNull();
+        if (process.env.TTYD_REQUIRE_COMPRESSION === '1') {
+            expect(nativeSockets[0].extensions.split(',').map(extension => extension.trim().split(';')[0]))
+                .toContain('permessage-deflate');
+        }
+    });
+});
+
 test('read-only terminal renders output and drops input while still processing resize', async ({ page }, testInfo) => {
     await withTerminal(page, testInfo, {}, async (server, { sockets }) => {
         await page.setViewportSize({ width: 960, height: 640 });

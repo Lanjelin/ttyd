@@ -19,6 +19,8 @@ JSON_C_VERSION="${JSON_C_VERSION:-0.19}"
 # Use the supported 3.5 LTS branch rather than the end-of-life 3.6 series.
 OPENSSL_VERSION="${OPENSSL_VERSION:-3.5.9}"
 LIBUV_VERSION="${LIBUV_VERSION:-1.53.0}"
+# 4.5.8 and 5.1.0 mishandle large compressed WebSocket messages, so ttyd leaves permessage-deflate off for
+# them. Before raising this, see "WebSocket compression" in docs/building.md and run `test:compression`.
 LIBWEBSOCKETS_VERSION="${LIBWEBSOCKETS_VERSION:-4.5.8}"
 
 build_zlib() {

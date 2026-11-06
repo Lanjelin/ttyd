@@ -381,3 +381,43 @@ No Windows, macOS, other-browser, TLS/mTLS, clipboard, SIXEL, transfer,
 cross-target, container or hosted-release execution is claimed. See
 [the test guide](../tests/README.md) for commands, isolation and coverage limits.
 
+
+## WebSocket compression and libwebsockets 5.1.0 (2026-11-04)
+
+Investigated a report that pasting 32 KiB or more kills the WebSocket. Reproduced
+with the installed 1.9.0 release binary (libwebsockets 4.5.8): the server logs
+`lws_extension_callback_pm_deflate: rx buffer underflow`, the browser sees close
+code 1006 and reconnects, which looks like a reload. Repeated-byte input failed
+from 2048 bytes and passed through 1 MiB with client compression disabled, so
+the cause is compressed receive, not a size limit. The local `build/native`
+libwebsockets 4.5.7 has `LWS_WITHOUT_EXTENSIONS`, which hid the bug.
+
+Built libwebsockets 5.1.0 separately (OpenSSL, `LWS_WITH_HTTP3=OFF` because it
+otherwise forces GnuTLS, extensions on) and linked ttyd against it. Findings:
+
+- ttyd exited immediately: 5.x `lws_service()` runs one loop iteration per call.
+  Fixed by looping until `force_exit`; SIGINT shutdown exits 0.
+- 2048 bytes to 1 MiB of repeated bytes pass, so the 4.5.8 failure is fixed.
+- Random base64 text loses about 19% of the message silently: 32 KiB delivered
+  26,624 bytes. Tracing `LWS_CALLBACK_RECEIVE` showed libwebsockets delivering a
+  well-formed `final` message of 26,625 bytes for 32,769 sent, so ttyd's
+  reassembly was not at fault. Without compression the same payloads, up to
+  8 MiB, arrived intact on 5.1.0, the 4.5.8 release and the 4.5.7 build.
+- The new regression tests fail on 5.1.0 with compression and pass without it:
+  protocol varied-input case and a real Chromium clipboard paste. The default
+  build passes the suite (17 passed, 2 skipped).
+
+Decision: do not register `permessage-deflate` for libwebsockets >=4.4.0 unless
+built with `TTYD_LWS_PMD_TRUSTED=ON`. Not adopted: bumping the cross-build pin to
+5.1.0.
+
+File transfers hung at `::TRZSZ:TRANSFER:S:...` (reported in a real browser too).
+Cause: the shell ttyd spawned inherited `TMUX` from the environment that launched
+ttyd. trzsz then enters tmux mode (trigger id ends in `20`), and writes its replies
+to the tmux client's TTY instead of ttyd's PTY, so the browser never receives them.
+The trzsz Python server source and a bare-PTY run showed the writer is the tmux TTY.
+With `TMUX`/`TMUX_PANE` unset, a 1 MiB upload and download matched SHA-256 in
+headless Chromium on the libwebsockets 5.1.0 build (compression off), with both
+`trzsz` 1.1.6 (Python) and 1.2.0 (Go) server tools. The browser's file pickers were
+stubbed in-page because headless Chromium cannot show them; the protocol traffic
+was real. Not exercised: SIXEL, tmux itself, and real file-picker dialogs.
