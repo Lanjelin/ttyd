@@ -112,3 +112,17 @@ the new native or requested-target path. Release asset names remain unchanged.
   reached the browser as WebSocket close code 1006. Final-output delivery is
   tested with automatic reconnect disabled; normal-close signaling and reconnect
   policy still need dedicated investigation.
+- WebSocket `permessage-deflate` is not registered with libwebsockets >=4.4.0
+  (build option `TTYD_LWS_PMD_TRUSTED`, default off). Verified here: 4.5.8
+  closes the connection with code 1006 ("rx buffer underflow") for compressed
+  messages of 2048 bytes or more, and 5.1.0 fixes that but silently truncates
+  compressed messages of incompressible text (about 19% of a 32 KiB paste lost)
+  with no error or reconnect. The same input is intact without compression.
+  The truncation originates inside libwebsockets 5.1.0: it delivers a correctly
+  framed message that is shorter than the one sent. Re-test newer releases
+  before enabling the option. Versions below 4.4.0 were not re-tested here.
+  libwebsockets 5.1.0 also needs ttyd's `lws_service()` loop; a build against it
+  was exercised only on Linux. Its `LWS_PRE` ABI change requires rebuilding ttyd,
+  and cross-target, Windows and container builds were not tried with it.
+  Compressed output to the browser is lost as a side effect; terminal output
+  works uncompressed.

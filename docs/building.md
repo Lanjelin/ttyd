@@ -60,6 +60,26 @@ The committed `src/html.h` allows a native build without Node or Yarn. After
 changing browser sources, rebuild the browser bundle first, then rebuild CMake's
 native executable to incorporate it.
 
+### WebSocket compression
+
+With libwebsockets >=4.4.0, including 4.5.8 and 5.1.0, ttyd does not register
+WebSocket `permessage-deflate`, so browsers fall back to uncompressed frames.
+Those versions drop the connection or silently truncate large compressed
+messages such as browser pastes; see [the risk note](../MODERNIZATION.md). Older
+libwebsockets keeps registering it. Pass `-DTTYD_LWS_PMD_TRUSTED=ON` only for a
+libwebsockets that passes the suite with `TTYD_REQUIRE_COMPRESSION=1`
+([test guide](../tests/README.md)). The cross-build script does not set it.
+
+To find out whether a newer libwebsockets fixed it, build ttyd against that
+release with `-DTTYD_LWS_PMD_TRUSTED=ON` and run the `test:compression` script
+in `tests/`; it fails on data loss or a dropped connection. The affected code is
+`extension-permessage-deflate.c` (under `lib/sansio/ws/ext/` in 5.x), and the
+failing input is a message of incompressible text of a few KiB or more. No
+upstream report has been filed from this project yet.
+
+libwebsockets 5.x runs one event-loop iteration per `lws_service()` call, unlike
+4.x. ttyd loops until shutdown, so it works with both.
+
 ### Windows / MSVC
 
 Use Visual Studio's C++ build tools, CMake, and vcpkg's `x64-windows-static`

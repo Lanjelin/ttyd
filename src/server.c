@@ -34,7 +34,12 @@ static const struct lws_protocols protocols[] = {{"http-only", callback_http, si
                                                  {"tty", callback_tty, sizeof(struct pss_tty), 0},
                                                  {NULL, NULL, 0, 0}};
 
-#ifndef LWS_WITHOUT_EXTENSIONS
+// libwebsockets >= 4.4.0 permessage-deflate mishandles large compressed messages (such as browser pastes):
+// 4.5.x drops the connection ("rx buffer underflow") and 5.1.0 silently truncates the input. Register the extension
+// there only when the build opts in with TTYD_LWS_PMD_TRUSTED. To check whether a newer libwebsockets is fixed,
+// build with that option and run the `test:compression` script in tests/ (see docs/building.md).
+#if !defined(LWS_WITHOUT_EXTENSIONS) && (LWS_LIBRARY_VERSION_NUMBER < 4004000 || defined(TTYD_LWS_PMD_TRUSTED))
+#define TTYD_WS_COMPRESSION 1
 // websocket extensions
 static const struct lws_extension extensions[] = {
     {"permessage-deflate", lws_extension_callback_pm_deflate, "permessage-deflate"},
@@ -333,7 +338,7 @@ int main(int argc, char **argv) {
   info.uid = -1;
   info.max_http_header_pool = 16;
   info.options = LWS_SERVER_OPTION_LIBUV | LWS_SERVER_OPTION_VALIDATE_UTF8 | LWS_SERVER_OPTION_DISABLE_IPV6;
-#ifndef LWS_WITHOUT_EXTENSIONS
+#ifdef TTYD_WS_COMPRESSION
   info.extensions = extensions;
 #endif
   info.max_http_header_data = 65535;
@@ -676,7 +681,9 @@ int main(int argc, char **argv) {
     uv_signal_start(&signals[i], signal_cb, sig_nums[i]);
   }
 
-  lws_service(context, 0);
+  // libwebsockets >= 5 runs a single event-loop iteration per call; 4.x blocks until the loop is stopped.
+  while (!force_exit && lws_service(context, 0) >= 0) {
+  }
 
   for (int i = 0; i < sig_count; i++) {
     uv_signal_stop(&signals[i]);

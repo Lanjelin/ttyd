@@ -4,6 +4,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(ttyd VERSION 1.9.0 LANGUAGES C)
 
+# libwebsockets >= 4.4.0 permessage-deflate drops or truncates large compressed messages (browser pastes), so ttyd
+# does not register it there. Enable only for a libwebsockets verified against tests/ with TTYD_REQUIRE_COMPRESSION=1.
+option(TTYD_LWS_PMD_TRUSTED "Register WebSocket permessage-deflate with libwebsockets >= 4.4.0" OFF)
+
 set(TTYD_VERSION "${PROJECT_VERSION}")
 
 include(GetGitVersion)
@@ -107,6 +111,7 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     TTYD_VERSION="${TTYD_VERSION}"
     $<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0xa00 WINVER=0xa00>
+    $<$<BOOL:${TTYD_LWS_PMD_TRUSTED}>:TTYD_LWS_PMD_TRUSTED>
 )
 
 include(GNUInstallDirs)
