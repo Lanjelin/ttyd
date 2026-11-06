@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12...4.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-project(ttyd VERSION 1.9.0 LANGUAGES C)
+project(ttyd VERSION 1.9.1 LANGUAGES C)
 
 # libwebsockets >= 4.4.0 permessage-deflate drops or truncates large compressed messages (browser pastes), so ttyd
 # does not register it there. Enable only for a libwebsockets verified against tests/ with TTYD_REQUIRE_COMPRESSION=1.
